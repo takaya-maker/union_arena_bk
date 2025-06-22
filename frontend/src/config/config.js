@@ -8,9 +8,9 @@ const config = {
   },
   // 本番環境
   production: {
-    API_BASE_URL: process.env.REACT_APP_API_BASE_URL || '', // 本番環境ではプロキシ経由などを想定
-    IMG_BASE_URL: process.env.REACT_APP_IMG_BASE_URL || '/static/images',
-    EFFECT_IMG_BASE_URL: process.env.REACT_APP_EFFECT_IMG_BASE_URL || '/static/effects',
+    API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://union-arena-bk.onrender.com',
+    IMG_BASE_URL: process.env.REACT_APP_IMG_BASE_URL || 'https://union-arena-bk.onrender.com/static/images',
+    EFFECT_IMG_BASE_URL: process.env.REACT_APP_EFFECT_IMG_BASE_URL || 'https://union-arena-bk.onrender.com/static/effects',
   }
 };
 
