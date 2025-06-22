@@ -14,14 +14,9 @@ app = FastAPI(
 
 # CORS設定（環境変数から取得、デフォルトはlocalhost）
 allowed_origins = os.getenv(
-    "http://localhost:3000",
-    "http://localhost:49607",
-    "http://127.0.0.1:3000",
-    "https://your-app.web.app",
-    "https://union-arena-bk.onrender.com",
-    "union-arena.firebaseapp.com",
-    "union-arena.web.com",
-    "ALLOWED_ORIGINS", 
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:49607,https://union-arena.firebaseapp.com,https://union-arena.web.app,https://union-arena-bk.onrender.com,http://192.168.11.106:3000"
+
 ).split(",")
 
 app.add_middleware(
