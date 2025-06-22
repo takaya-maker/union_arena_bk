@@ -117,6 +117,11 @@ export const getImageUrl = {
     return `${API_BASE_URL}/api/v1/images/energy/${energyName}`;
   },
 
+  // 発生エナジー画像URL
+  generatedEnergyImage: (energyName) => {
+    return `${API_BASE_URL}/api/v1/images/generated-energy/${energyName}`;
+  },
+
   // 効果画像URL
   effectImage: (effectName) => {
     return `${API_BASE_URL}/api/v1/images/effects/${effectName}`;

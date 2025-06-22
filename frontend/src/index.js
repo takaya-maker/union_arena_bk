@@ -4,6 +4,11 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// 開発環境でのみ音声テストツールを読み込み
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/audioTest');
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

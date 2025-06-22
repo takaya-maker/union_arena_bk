@@ -3,6 +3,7 @@ import { cardAPI } from '../../services/api';
 import { createDeck, updateDeck } from '../../services/deckAPI';
 import { deckValidator } from '../../utils/deckValidator';
 import { deckExporter } from '../../utils/deckExporter';
+import { API_BASE_URL } from '../../config/config';
 import CardComponent from '../Card/CardComponent';
 import CardCompact from '../Card/CardCompact';
 import CardDetailModal from '../Card/CardDetailModal';
@@ -35,6 +36,7 @@ const DeckBuilder = ({ onDeckSaved }) => {
   // 表示モード
   const [viewMode, setViewMode] = useState('builder'); // 'builder', 'list', 'validation'
   const [selectedDeck, setSelectedDeck] = useState(null);
+  const [showDeckList, setShowDeckList] = useState(false);
 
   // 検証結果
   const [validationResult, setValidationResult] = useState(null);
@@ -81,6 +83,10 @@ const DeckBuilder = ({ onDeckSaved }) => {
     setDeckCards([]);
     setEditingDeck(null);
     setValidationResult(null);
+  };
+
+  const getCardImageUrl = (cardId) => {
+    return `${API_BASE_URL}/api/v1/images/cards/${cardId}`;
   };
 
   const loadInitialData = async () => {
@@ -594,39 +600,103 @@ const DeckBuilder = ({ onDeckSaved }) => {
               </div>
             ) : (
               <div className="deck-cards">
-                {deckCards.map(card => (
-                  <div key={card.card_id} className="deck-card-item">
-                    <div className="card-info">
-                      <span className="card-name">{card.name}</span>
-                      <span className="card-type">{card.card_type}</span>
-                      {card.card_term_name && (
-                        <span className="card-term">{card.card_term_name}</span>
-                      )}
+                {/* カード画像グリッド表示 */}
+                <div className="deck-cards-grid">
+                  {deckCards.map(card => (
+                    <div key={card.card_id} className="deck-card-image-item">
+                      <div className="card-image-container">
+                        <img 
+                          src={getCardImageUrl(card.card_id)} 
+                          alt={card.name || `Card ${card.card_id}`}
+                          className="deck-card-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'block';
+                          }}
+                        />
+                        <div className="card-image-fallback" style={{display: 'none'}}>
+                          {card.name || card.card_id}
+                        </div>
+                        {card.quantity > 1 && (
+                          <div className="card-quantity-badge">{card.quantity}</div>
+                        )}
+                      </div>
+                      <div className="card-controls-overlay">
+                        <button 
+                          onClick={() => changeCardQuantity(card.card_id, card.quantity - 1)}
+                          className="quantity-btn"
+                          title="枚数を減らす"
+                        >
+                          -
+                        </button>
+                        <span className="quantity-display">{card.quantity}</span>
+                        <button 
+                          onClick={() => changeCardQuantity(card.card_id, card.quantity + 1)}
+                          className="quantity-btn"
+                          disabled={card.quantity >= 4}
+                          title="枚数を増やす"
+                        >
+                          +
+                        </button>
+                        <button 
+                          onClick={() => removeCardFromDeck(card.card_id)}
+                          className="remove-btn"
+                          title="削除"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
-                    <div className="card-controls">
-                      <button 
-                        onClick={() => changeCardQuantity(card.card_id, card.quantity - 1)}
-                        className="quantity-btn"
-                      >
-                        -
-                      </button>
-                      <span className="quantity">{card.quantity}</span>
-                      <button 
-                        onClick={() => changeCardQuantity(card.card_id, card.quantity + 1)}
-                        className="quantity-btn"
-                        disabled={card.quantity >= 4}
-                      >
-                        +
-                      </button>
-                      <button 
-                        onClick={() => removeCardFromDeck(card.card_id)}
-                        className="remove-btn"
-                      >
-                        削除
-                      </button>
-                    </div>
+                  ))}
+                </div>
+
+                {/* 従来のリスト表示（折りたたみ可能） */}
+                <div className="deck-cards-list-toggle">
+                  <button 
+                    className="toggle-list-btn"
+                    onClick={() => setShowDeckList(!showDeckList)}
+                  >
+                    {showDeckList ? 'リストを隠す' : 'リストを表示'}
+                  </button>
+                </div>
+
+                {showDeckList && (
+                  <div className="deck-cards-list">
+                    {deckCards.map(card => (
+                      <div key={card.card_id} className="deck-card-item">
+                        <div className="card-info">
+                          <span className="card-name">{card.name}</span>
+                          <span className="card-type">{card.card_type}</span>
+                          {card.card_term_name && (
+                            <span className="card-term">{card.card_term_name}</span>
+                          )}
+                        </div>
+                        <div className="card-controls">
+                          <button 
+                            onClick={() => changeCardQuantity(card.card_id, card.quantity - 1)}
+                            className="quantity-btn"
+                          >
+                            -
+                          </button>
+                          <span className="quantity">{card.quantity}</span>
+                          <button 
+                            onClick={() => changeCardQuantity(card.card_id, card.quantity + 1)}
+                            className="quantity-btn"
+                            disabled={card.quantity >= 4}
+                          >
+                            +
+                          </button>
+                          <button 
+                            onClick={() => removeCardFromDeck(card.card_id)}
+                            className="remove-btn"
+                          >
+                            削除
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
 

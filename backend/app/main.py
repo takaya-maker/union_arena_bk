@@ -26,15 +26,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# cardscrapフォルダーへの絶対パスを取得
+CARDSCRAP_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cardscrap')
+PICTURE_PATH = os.path.join(CARDSCRAP_PATH, 'picture')
+
 # APIルーター登録
 app.include_router(cards.router, prefix="/api/v1", tags=["cards"])
 app.include_router(images.router, prefix="/api/v1", tags=["images"])
 app.include_router(decks.router, prefix="/api/v1", tags=["decks"])
 
-# app.mount("/static/images", StaticFiles(directory="../cardscrap/picture/0.cardpicture"), name="static_images")
-# app.mount("/static/generated_energy", StaticFiles(directory="../cardscrap/picture/2.Generated_energy"), name="static_generated_energy")
-# app.mount("/static/effects", StaticFiles(directory="../cardscrap/picture/3.effect"), name="static_effects")
-# app.mount("/static/triggers", StaticFiles(directory="../cardscrap/picture/4.trigger"), name="static_triggers")
+app.mount("/static/images", StaticFiles(directory=os.path.join(PICTURE_PATH, "0.cardpicture")), name="static_images")
+app.mount("/static/generated_energy", StaticFiles(directory=os.path.join(PICTURE_PATH, "2.Generated_energy")), name="static_generated_energy")
+app.mount("/static/effects", StaticFiles(directory=os.path.join(PICTURE_PATH, "3.effect")), name="static_effects")
+app.mount("/static/triggers", StaticFiles(directory=os.path.join(PICTURE_PATH, "4.trigger")), name="static_triggers")
 
 @app.get("/")
 async def root():
@@ -72,6 +76,7 @@ async def list_endpoints():
             "card_rank_names": "GET /api/v1/card-rank-names",
             "card_image": "GET /api/v1/images/cards/{card_id}",
             "energy_image": "GET /api/v1/images/energy/{energy_name}",
+            "generated_energy_image": "GET /api/v1/images/generated-energy/{energy_name}",
             "effect_image": "GET /api/v1/images/effects/{effect_name}",
             "list_images": "GET /api/v1/images/list/{image_type}",
             "create_deck": "POST /api/v1/decks",

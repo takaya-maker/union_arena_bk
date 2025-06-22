@@ -123,6 +123,15 @@
   margin: 0 2px;
 }
 
+/* 発生エナジー画像のスタイル */
+.inline-energy-icon {
+  height: 20px;
+  width: auto;
+  vertical-align: middle;
+  margin: 0 2px;
+  border-radius: 2px;
+}
+
 .effect-symbol {
   background: #fff3cd;
   padding: 2px 4px;

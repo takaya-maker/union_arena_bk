@@ -29,7 +29,7 @@ const CardCompact = ({ card, onClick, onAddToDeck, isSelected, showAddButton = t
         const imageName = part.slice(1, -1).replace(/[:*?"<>|]/g, '');
         let imageUrl = '';
         if (type === 'generated_energy') {
-          imageUrl = getImageUrl.energyImage(imageName);
+          imageUrl = getImageUrl.generatedEnergyImage(imageName);
         }
         return (
           <img

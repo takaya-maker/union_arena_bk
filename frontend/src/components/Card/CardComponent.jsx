@@ -30,6 +30,27 @@ const CardComponent = ({ card, onClick, isSelected = false }) => {
     });
   };
 
+  // 発生エナジーの表示用処理（画像表示）
+  const renderGeneratedEnergyText = (energyText) => {
+    if (!energyText) return '';
+    
+    return energyText.split('*').map((part, index) => {
+      if (index % 2 === 1) {
+        // *で囲まれた部分（発生エナジー画像）
+        const imageName = part.replace(/[:*?"<>|]/g, '');
+        return (
+          <img
+            key={index}
+            src={getImageUrl.generatedEnergyImage(imageName)}
+            alt={imageName}
+            className="inline-energy-icon"
+          />
+        );
+      }
+      return part;
+    });
+  };
+
   // 効果テキストの表示用処理
   const renderEffectText = (effectText) => {
     if (!effectText) return '';
@@ -128,7 +149,7 @@ const CardComponent = ({ card, onClick, isSelected = false }) => {
             <div className="card-detail">
               <span className="label">発生エナジー:</span>
               <span className="value energy-generate">
-                {renderEnergyText(card.発生エナジー)}
+                {renderGeneratedEnergyText(card.発生エナジー)}
               </span>
             </div>
           )}

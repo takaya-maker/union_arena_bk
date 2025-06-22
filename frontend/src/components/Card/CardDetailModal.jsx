@@ -15,7 +15,7 @@ const CardDetailModal = ({ card, isOpen, onClose, onAddToDeck, showAddButton = t
       onClose();
     }
   };
-
+  
   const handleAddToDeck = () => {
     if (onAddToDeck) {
       onAddToDeck(card);
@@ -31,7 +31,7 @@ const CardDetailModal = ({ card, isOpen, onClose, onAddToDeck, showAddButton = t
         const imageName = part.slice(1, -1).replace(/[:*?"<>|]/g, '');
         let imageUrl = '';
         if (type === 'generated_energy') {
-          imageUrl = getImageUrl.energyImage(imageName);
+          imageUrl = getImageUrl.generatedEnergyImage(imageName);
         } else if (type === 'effect') {
           imageUrl = getImageUrl.effectImage(imageName);
         } else if (type === 'trigger') {
@@ -122,11 +122,11 @@ const CardDetailModal = ({ card, isOpen, onClose, onAddToDeck, showAddButton = t
                   <span className="value">{card.card_rank_name}</span>
                 </div>
               )}
-              {showAddButton && onAddToDeck && (
+              {/* {showAddButton && onAddToDeck && (
                 <div className="card-actions">
                   <button onClick={handleAddToDeck} className="add-to-deck-btn">デッキに追加</button>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

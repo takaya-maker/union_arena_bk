@@ -62,6 +62,69 @@
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* バトルフィールド画面用のスタイル */
+.App-main.battle-field {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  height: calc(100vh - 100px); /* バトルモードヘッダーの高さに合わせて調整 */
+  overflow: hidden;
+}
+
+/* バトルモード用のヘッダースタイル */
+.App-header.battle-mode {
+  padding: 6px 20px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.App-header.battle-mode h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.battle-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+.back-button {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 15px;
+  white-space: nowrap;
+}
+
+.battle-info {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  opacity: 0.9;
+  flex-wrap: wrap;
+}
+
+.deck-name, .duel-mode {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .App-footer {
@@ -100,6 +163,51 @@
   
   .nav-button {
     width: 200px;
+  }
+
+  .App-main {
+    padding: 10px;
+  }
+
+  .App-main.battle-field {
+    height: calc(100vh - 80px); /* モバイルではヘッダーが小さくなる */
+  }
+
+  /* バトルモード用のレスポンシブスタイル */
+  .App-header.battle-mode {
+    padding: 8px 12px;
+    min-height: 50px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .App-header.battle-mode h1 {
+    font-size: 18px;
+  }
+
+  .battle-header-controls {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .back-button {
+    padding: 6px 12px;
+    font-size: 12px;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .battle-info {
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .deck-name, .duel-mode {
+    font-size: 11px;
+    padding: 3px 6px;
   }
 }
 

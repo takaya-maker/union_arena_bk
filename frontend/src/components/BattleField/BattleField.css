@@ -1,0 +1,1293 @@
+/* BattleField.css */
+.battle-field-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #1a1a1a;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 背景画像 */
+.battle-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  opacity: 0.85;
+  z-index: -1;
+}
+
+/* 背景画像が利用可能な場合の追加スタイル */
+.battle-background.has-background {
+  opacity: 0.9;
+}
+
+/* 横長画像用の調整 */
+@media (min-width: 1200px) {
+  .battle-background.has-background {
+    background-size: contain !important;
+    background-position: center !important;
+  }
+}
+
+/* カードゲームパッド風の背景オーバーレイ */
+.battle-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  z-index: -1;
+}
+
+/* 背景画像が読み込めない場合のフォールバック */
+.battle-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  z-index: -1;
+}
+
+/* ゲーム情報ヘッダー */
+.game-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+  height: auto;
+  min-height: 50px;
+  border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.turn-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.turn-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.current-player {
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.current-player.player {
+  background: rgba(0, 123, 255, 0.8);
+}
+
+.current-player.opponent {
+  background: rgba(220, 53, 69, 0.8);
+}
+
+.game-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.action-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  white-space: nowrap;
+}
+
+.draw-button {
+  background: linear-gradient(45deg, #28a745, #20c997);
+}
+
+.draw-button:hover {
+  background: linear-gradient(45deg, #218838, #1ea085);
+  transform: translateY(-1px);
+}
+
+.next-phase-button {
+  background: linear-gradient(45deg, #17a2b8, #6f42c1);
+}
+
+.next-phase-button:hover {
+  background: linear-gradient(45deg, #138496, #5a32a3);
+  transform: translateY(-1px);
+}
+
+.end-turn-button {
+  background: linear-gradient(45deg, #ffc107, #fd7e14);
+}
+
+.end-turn-button:hover {
+  background: linear-gradient(45deg, #e0a800, #e8590c);
+  transform: translateY(-1px);
+}
+
+.menu-button {
+  background: linear-gradient(45deg, #6c757d, #495057);
+}
+
+.menu-button:hover {
+  background: linear-gradient(45deg, #5a6268, #343a40);
+  transform: translateY(-1px);
+}
+
+/* ライフ表示 */
+.life-display {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  backdrop-filter: blur(5px);
+  z-index: 9;
+  height: auto;
+  gap: 8px;
+  min-height: 35px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-life, .opponent-life {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: center;
+}
+
+.player-life {
+  justify-content: flex-start;
+}
+
+.opponent-life {
+  justify-content: flex-end;
+}
+
+.life-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffd700;
+  min-width: 60px;
+}
+
+.life-bar {
+  position: relative;
+  width: 120px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.life-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+.player-life-fill {
+  background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.opponent-life-fill {
+  background: linear-gradient(90deg, #dc3545, #fd7e14);
+}
+
+.life-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* フェーズバッジ */
+.phase-badge {
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* フェーズ情報 */
+.phase-info {
+  margin-top: 2px;
+}
+
+.phase-actions {
+  font-size: 10px;
+  color: #ccc;
+  font-style: italic;
+}
+
+/* メインゲームエリア */
+.main-game-area {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* 相手エリア */
+.opponent-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 300px;
+}
+
+.opponent-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(220, 53, 69, 0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.hand-count, .deck-count {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.opponent-energy {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.opponent-energy h4 {
+  font-size: 12px;
+  color: #ffd700;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.opponent-field {
+  flex: 1;
+  background: rgba(220, 53, 69, 0.1);
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(220, 53, 69, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.opponent-field h3 {
+  font-size: 14px;
+  color: #ffd700;
+  margin: 0 0 12px 0;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* 中央エリア */
+.center-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 250px;
+  max-width: 300px;
+}
+
+.battle-log {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.battle-log h3 {
+  font-size: 14px;
+  color: #ffd700;
+  margin: 0 0 12px 0;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+  padding-bottom: 8px;
+}
+
+.log-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.log-messages::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.log-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.5);
+  border-radius: 3px;
+}
+
+.log-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.7);
+}
+
+.log-message {
+  font-size: 11px;
+  color: #fff;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  border-left: 3px solid #ffd700;
+  animation: fadeIn 0.3s ease;
+}
+
+.log-message:last-child {
+  background: rgba(255, 215, 0, 0.1);
+  border-left-color: #28a745;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* プレイヤーエリア */
+.player-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 300px;
+}
+
+.player-field {
+  flex: 1;
+  background: rgba(0, 123, 255, 0.1);
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 123, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.player-field h3 {
+  font-size: 14px;
+  color: #ffd700;
+  margin: 0 0 12px 0;
+  text-align: center;
+  font-weight: bold;
+}
+
+.player-energy {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-energy h4 {
+  font-size: 12px;
+  color: #ffd700;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.player-deck-info {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.player-deck-info span {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* フィールドスロット */
+.field-slots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.field-slot {
+  width: 80px;
+  height: 120px;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.field-slot.player-slot {
+  border-color: rgba(0, 123, 255, 0.5);
+  background: rgba(0, 123, 255, 0.05);
+}
+
+.field-slot.player-slot:hover {
+  border-color: rgba(0, 123, 255, 0.8);
+  background: rgba(0, 123, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.field-slot.highlighted {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+}
+
+.field-card {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* エナジー表示 */
+.energy-display {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.energy-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  min-width: 40px;
+}
+
+.energy-item:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.energy-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.energy-amount {
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.energy-item[data-color="blue"] {
+  border-color: rgba(0, 123, 255, 0.5);
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.energy-item[data-color="red"] {
+  border-color: rgba(220, 53, 69, 0.5);
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.energy-item[data-color="green"] {
+  border-color: rgba(40, 167, 69, 0.5);
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.energy-item[data-color="yellow"] {
+  border-color: rgba(255, 193, 7, 0.5);
+  background: rgba(255, 193, 7, 0.1);
+}
+
+.energy-item[data-color="purple"] {
+  border-color: rgba(111, 66, 193, 0.5);
+  background: rgba(111, 66, 193, 0.1);
+}
+
+.energy-item[data-amount="0"] {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.energy-item[data-amount="0"] .energy-amount {
+  color: #ccc;
+}
+
+/* 手札エリア */
+.hand-section {
+  height: 280px;
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 2px solid rgba(255, 215, 0, 0.3);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.player-hand {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-hand h3 {
+  font-size: 16px;
+  color: #ffd700;
+  margin: 0 0 16px 0;
+  text-align: center;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.hand-cards {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  padding: 0 40px;
+  min-height: 200px;
+}
+
+.hand-card {
+  width: 140px;
+  height: 200px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  transform-origin: bottom center;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  border: 3px solid transparent;
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+}
+
+.hand-card:hover {
+  transform: translateY(-30px) scale(1.15) !important;
+  z-index: 1000 !important;
+  border-color: #ffd700;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+}
+
+.hand-card.selected {
+  border-color: #28a745;
+  box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.6);
+  transform: translateY(-15px) scale(1.1) !important;
+}
+
+.hand-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
+  transition: all 0.3s ease;
+}
+
+.hand-card:hover .hand-card-image {
+  transform: scale(1.05);
+}
+
+.hand-card-fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #000;
+  text-align: center;
+  padding: 12px;
+  border-radius: 7px;
+  line-height: 1.3;
+}
+
+/* デッキ情報 */
+.deck-info {
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* 選択されたカードの詳細表示 */
+.selected-card-detail {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  padding: 20px;
+  z-index: 1000;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.selected-card-detail h4 {
+  color: #ffd700;
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.selected-card-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.selected-card-detail p {
+  color: #fff;
+  margin: 5px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.card-cost-info {
+  background: rgba(255, 215, 0, 0.1);
+  padding: 8px;
+  border-radius: 6px;
+  margin: 10px 0;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* 選択されたカードの詳細表示を閉じるボタン */
+.selected-card-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(220, 53, 69, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.selected-card-close:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+/* 選択されたカードの詳細表示のオーバーレイ */
+.selected-card-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 999;
+  backdrop-filter: blur(5px);
+}
+
+/* デュエルモードバッジ */
+.duel-mode-badge {
+  background: rgba(111, 66, 193, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  border: 1px solid rgba(111, 66, 193, 0.3);
+}
+
+/* エナジーアイコンフォールバック */
+.energy-icon-fallback {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* 水平エナジー表示 */
+.energy-display.horizontal {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.energy-display.horizontal .energy-item {
+  flex-direction: row;
+  gap: 4px;
+  min-width: 50px;
+}
+
+.energy-display.horizontal .energy-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.energy-display.horizontal .energy-icon-fallback {
+  width: 20px;
+  height: 20px;
+  font-size: 8px;
+}
+
+.energy-display.horizontal .energy-amount {
+  font-size: 12px;
+}
+
+/* カードコスト表示 */
+.card-cost {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.9);
+  color: #ffd700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  border: 2px solid rgba(255, 215, 0, 0.6);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  z-index: 10;
+}
+
+.card-cost-info {
+  background: rgba(255, 215, 0, 0.1);
+  padding: 8px;
+  border-radius: 6px;
+  margin: 10px 0;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* 使用不可カード */
+.hand-card.unplayable {
+  opacity: 0.6;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+.hand-card.unplayable:hover {
+  transform: none !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ドラッグ中のカード */
+.hand-card.dragging {
+  opacity: 0.8;
+  transform: scale(1.1) rotate(5deg) !important;
+  z-index: 1000 !important;
+}
+
+/* ドラッグインジケーター */
+.drag-indicator {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(40, 167, 69, 0.9);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  animation: bounce 1s infinite;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ドラッグオーバー時のスロット */
+.field-slot.drag-over {
+  border-color: #28a745;
+  background: rgba(40, 167, 69, 0.2);
+  transform: scale(1.1);
+}
+
+/* ドロップインジケーター */
+.drop-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(40, 167, 69, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 10;
+  animation: bounce 0.5s infinite;
+}
+
+/* ドラッグ説明 */
+.drag-instruction {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  padding: 20px;
+  z-index: 1000;
+  text-align: center;
+  color: white;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+}
+
+.drag-instruction-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.drag-instruction-content h4 {
+  color: #ffd700;
+  margin: 0;
+  font-size: 16px;
+}
+
+.drag-instruction-content p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.drag-instruction-arrow {
+  font-size: 24px;
+  color: #ffd700;
+  animation: bounce 1s infinite;
+}
+
+/* 無効化されたボタン */
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.action-button:disabled:hover {
+  transform: none !important;
+  background: inherit !important;
+}
+
+/* ゲームオーバー画面 */
+.game-over-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.game-over-content {
+  background: rgba(0, 0, 0, 0.95);
+  border: 3px solid #ffd700;
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  color: white;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+}
+
+.game-over-title {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.game-over-title.player {
+  color: #28a745;
+}
+
+.game-over-title.opponent {
+  color: #dc3545;
+}
+
+.game-over-message {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  color: #ccc;
+}
+
+.game-over-stats {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.game-over-stats p {
+  margin: 5px 0;
+  font-size: 1rem;
+  color: #fff;
+}
+
+/* デッキが選択されていない場合 */
+.no-deck-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: white;
+  text-align: center;
+}
+
+.back-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  margin-top: 20px;
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .game-header {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+  
+  .game-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .field-slots {
+    gap: 4px;
+  }
+  
+  .field-slot {
+    width: 60px;
+    height: 90px;
+  }
+  
+  .hand-card {
+    width: 100px;
+    height: 140px;
+  }
+  
+  .hand-section {
+    height: 200px;
+    padding: 12px;
+  }
+  
+  .hand-cards {
+    gap: 6px;
+    padding: 0 20px;
+    min-height: 140px;
+  }
+  
+  .energy-display {
+    gap: 4px;
+  }
+  
+  .energy-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .energy-icon-fallback {
+    width: 20px;
+    height: 20px;
+    font-size: 8px;
+  }
+  
+  .energy-item {
+    min-width: 35px;
+  }
+  
+  .energy-amount {
+    font-size: 8px;
+  }
+  
+  .center-area {
+    display: none;
+  }
+  
+  .battle-log {
+    display: none;
+  }
+  
+  .log-message {
+    font-size: 10px;
+  }
+  
+  .life-display {
+    padding: 6px 12px;
+  }
+  
+  .player-life, .opponent-life {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .life-bar {
+    width: 80px;
+    height: 15px;
+  }
+  
+  .life-text {
+    font-size: 10px;
+  }
+  
+  .game-over-content {
+    padding: 20px;
+  }
+  
+  .game-over-title {
+    font-size: 2rem;
+  }
+  
+  .game-over-message {
+    font-size: 1rem;
+  }
+  
+  .phase-badge {
+    font-size: 8px;
+  }
+  
+  .selected-card-detail {
+    padding: 15px;
+  }
+  
+  .selected-card-image {
+    height: 150px;
+  }
+  
+  .selected-card-detail h4 {
+    font-size: 16px;
+  }
+  
+  .selected-card-detail p {
+    font-size: 12px;
+  }
+  
+  .opponent-area {
+    display: none;
+  }
+  
+  .player-area {
+    flex: 1;
+  }
+  
+  .drag-indicator {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+  
+  .drop-indicator {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+  
+  .drag-instruction-content {
+    gap: 8px;
+  }
+  
+  .drag-instruction-content h4 {
+    font-size: 14px;
+  }
+  
+  .drag-instruction-content p {
+    font-size: 12px;
+  }
+  
+  .drag-instruction-arrow {
+    font-size: 20px;
+  }
+  
+  .drag-instruction {
+    padding: 15px;
+  }
+  
+  /* メインゲームエリアのレスポンシブ対応 */
+  .main-game-area {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .opponent-section, .player-section {
+    min-width: auto;
+  }
+  
+  .hand-section {
+    height: 180px;
+    padding: 8px;
+  }
+  
+  .hand-cards {
+    gap: 4px;
+    padding: 0 10px;
+  }
+  
+  .card-cost {
+    font-size: 10px;
+    padding: 2px 6px;
+    top: 6px;
+    right: 6px;
+  }
+}
+
+/* カード詳細表示 */
+.card-detail-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  padding: 20px;
+  z-index: 1000;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.card-detail-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.detail-card-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.card-detail-info {
+  width: 100%;
+  text-align: left;
+}
+
+.card-detail-info h4 {
+  color: #ffd700;
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.card-detail-info p {
+  color: #fff;
+  margin: 5px 0;
+  font-size: 14px;
+  line-height: 1.4;
+} 
