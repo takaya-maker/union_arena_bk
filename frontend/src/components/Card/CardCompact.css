@@ -1,0 +1,209 @@
+/* frontend/src/components/Card/CardCompact.css */
+.card-compact {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 120px;
+}
+
+.card-compact:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.card-compact.selected {
+  border-color: #007bff;
+  background-color: #f8f9ff;
+}
+
+.card-image-container {
+  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1.12; /* カードの縦比率の約80%を表示するよう調整 */
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 6px;
+}
+
+.card-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 12px;
+  text-align: center;
+  border-radius: 6px;
+}
+
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-name {
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.card-id {
+  font-size: 11px;
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.card-basic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.card-type {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.card-cost {
+  background: #fff3e0;
+  color: #f57c00;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.card-bp {
+  background: #e8f5e8;
+  color: #388e3c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.card-ap {
+  background: #fce4ec;
+  color: #c2185b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.card-trait, .card-energy {
+  display: flex;
+  flex-direction: column;
+  /* gap: 2px; */
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.card-trait .label, .card-energy .label {
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.card-trait .value, .card-energy .value {
+  color: #333;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  text-align: left;
+  white-space: pre-line;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+.add-to-deck-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.add-to-deck-btn:hover {
+  background: #218838;
+}
+
+.add-to-deck-btn:active {
+  transform: scale(0.95);
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .card-compact {
+    padding: 10px;
+    min-height: 100px;
+  }
+  
+  .card-name {
+    font-size: 13px;
+  }
+  
+  .card-basic-info {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  
+  .card-cost,
+  .card-bp,
+  .card-ap {
+    font-size: 10px;
+  }
+} 

@@ -1,0 +1,396 @@
+/* frontend/src/components/Card/CardDetailModal.css */
+.card-detail-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.card-detail-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: #e9ecef;
+  color: #333;
+}
+
+.modal-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.card-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item .label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item .value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.card-effect,
+.card-trigger,
+.card-flavor {
+  margin-bottom: 20px;
+}
+
+.card-effect h4,
+.card-trigger h4,
+.card-flavor h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 4px;
+}
+
+.effect-text,
+.trigger-text,
+.flavor-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.add-to-deck-btn,
+.close-modal-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+
+.add-to-deck-btn {
+  background: #28a745;
+  color: white;
+}
+
+.add-to-deck-btn:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.close-modal-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.close-modal-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .card-detail-modal-backdrop {
+    padding: 10px;
+  }
+  
+  .card-detail-modal {
+    max-height: 95vh;
+  }
+  
+  .modal-header {
+    padding: 16px 20px;
+  }
+  
+  .modal-header h3 {
+    font-size: 18px;
+  }
+  
+  .modal-content {
+    padding: 20px;
+  }
+  
+  .card-info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .modal-actions {
+    padding: 16px 20px;
+    flex-direction: column;
+  }
+  
+  .add-to-deck-btn,
+  .close-modal-btn {
+    width: 100%;
+  }
+}
+
+.card-detail-content {
+  display: flex;
+  gap: 24px;
+}
+
+.card-detail-image-container {
+  flex: 0 0 200px;
+  align-self: flex-start;
+}
+
+.card-detail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 8px;
+}
+
+.card-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 14px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.card-detail-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.card-detail-info h2 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  color: #333;
+}
+
+.card-id {
+  font-size: 13px;
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.card-type {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.card-cost {
+  background: #fff3e0;
+  color: #f57c00;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.card-bp {
+  background: #e8f5e8;
+  color: #388e3c;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.card-ap {
+  background: #fce4ec;
+  color: #c2185b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.card-trait, .card-energy, .card-effect {
+  display: flex;
+  align-items: flex-start;
+  /* gap: 8px; */
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.card-trait .label, .card-energy .label, .card-effect .label {
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 40px;
+}
+
+.card-trait .value, .card-energy .value, .card-effect .value {
+  color: #333;
+  flex: 1;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-line;
+}
+
+.card-actions {
+  margin-top: 16px;
+}
+
+.add-to-deck-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.add-to-deck-btn:hover {
+  background: #218838;
+}
+
+/* 情報グループ (特徴、効果、トリガーなど) */
+.info-group {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+.info-group .label {
+  flex: 0 0 60px;
+  font-weight: 600;
+  color: #495057;
+  position: relative;
+  padding-right: 10px;
+}
+/* ラベルの後の区切り線 */
+.info-group .label::after {
+  content: ':';
+  position: absolute;
+  right: 5px;
+}
+.info-group .value {
+  flex: 1;
+  color: #212529;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+/* 上部の基本情報 (BP, APなど) */
+.card-basic-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  /* padding-bottom: 12px; */
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 8px;
+}
+
+/* トリガーとフレイバーテキストのスタイル */
+.card-trigger .value, .card-flavor .value {
+  background-color: #f8f9fa;
+  border-left: 3px solid #007bff;
+  padding: 10px;
+  border-radius: 4px;
+  font-style: italic;
+}
+.card-flavor .value {
+  border-left-color: #6c757d;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.inline-effect-icon {
+  height: 1.4em;
+  vertical-align: middle;
+  margin: 0 1px;
+  transform: translateY(-0.1em);
+} 

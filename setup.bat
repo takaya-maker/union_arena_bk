@@ -1,0 +1,1 @@
+SELECT * FROM card_table WHERE 1=1 AND name LIKE ? AND "カード種類" = ? AND "必要エナジー" LIKE ?

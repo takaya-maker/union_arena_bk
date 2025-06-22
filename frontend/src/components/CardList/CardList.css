@@ -1,0 +1,200 @@
+/* frontend/src/components/CardList/CardList.css */
+.card-list-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2em;
+}
+
+.error {
+  color: #dc3545;
+}
+
+.retry-button {
+  margin-left: 12px;
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: #0056b3;
+}
+
+/* 検索フォーム */
+.search-form {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.search-form h2 {
+  margin: 0 0 16px 0;
+  color: #333;
+}
+
+.search-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-field label {
+  font-weight: bold;
+  color: #555;
+  font-size: 0.9em;
+}
+
+.search-field input,
+.search-field select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.search-field input:focus,
+.search-field select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.search-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.search-button,
+.show-all-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.search-button {
+  background: #007bff;
+  color: white;
+}
+
+.search-button:hover {
+  background: #0056b3;
+}
+
+.show-all-button {
+  background: #6c757d;
+  color: white;
+}
+
+.show-all-button:hover {
+  background: #545862;
+}
+
+/* カード一覧セクション */
+.cards-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.cards-header {
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cards-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.selected-info {
+  background: #d1ecf1;
+  color: #0c5460;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+/* CardCompact用のグリッドレイアウト */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+
+/* CardCompactコンポーネントの調整 */
+.cards-grid .card-compact {
+  margin: 0;
+  min-height: auto;
+}
+
+.no-cards {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1em;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .card-list-container {
+    padding: 10px;
+  }
+
+  .search-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .search-buttons {
+    flex-direction: column;
+  }
+
+  .cards-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+    padding: 10px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-form {
+    padding: 12px;
+  }
+
+  .cards-grid {
+    gap: 8px;
+  }
+}
