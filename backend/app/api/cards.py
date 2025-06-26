@@ -8,42 +8,426 @@ from ..models.card import Card, CardResponse, CardsResponse, CardSearchRequest
 router = APIRouter()
 db = DatabaseConnection()
 
-@router.get("/cards", response_model=CardsResponse)
-async def get_all_cards():
-    """全カードデータを取得"""
-    try:
-        cards_data = db.get_all_cards()
-        cards = [Card(**card_data) for card_data in cards_data]
-        
-        return CardsResponse(
-            success=True,
-            data=cards,
-            count=len(cards),
-            message=f"Successfully retrieved {len(cards)} cards"
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving cards: {str(e)}")
+# backend/app/api/cards.py (大量データ対応版)
+from typing import Optional, List
+from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi.responses import JSONResponse
+import sqlite3
+import json
+from ..database.connection import get_db_connection
 
-@router.post("/cards/search", response_model=CardsResponse)
-async def search_cards(search_request: CardSearchRequest):
-    """カード検索"""
+router = APIRouter()
+
+@router.get("/cards")
+async def get_all_cards(
+    page: int = Query(1, ge=1, description="ページ番号"),
+    limit: int = Query(100, ge=1, le=1000, description="1ページあたりの件数"),
+    minimal: bool = Query(False, description="最小限の情報のみ取得")
+):
+    """
+    全カード取得API（大量データ対応）
+    """
     try:
-        cards_data = db.search_cards(
-            name=search_request.name,
-            card_type=search_request.card_type,
-            energy=search_request.energy
-        )
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
-        cards = [Card(**card_data) for card_data in cards_data]
+        # 総件数取得
+        cursor.execute("SELECT COUNT(*) FROM card_table")
+        total_count = cursor.fetchone()[0]
         
-        return CardsResponse(
-            success=True,
-            data=cards,
-            count=len(cards),
-            message=f"Found {len(cards)} cards matching the search criteria"
-        )
+        # データ取得
+        offset = (page - 1) * limit
+        
+        if minimal:
+            # 最小限の情報のみ（一覧表示用）
+            query = """
+                SELECT id, name, "カード種類", "BP", imgpath
+                FROM card_table 
+                ORDER BY id
+                LIMIT ? OFFSET ?
+            """
+            columns = ['id', 'name', 'カード種類', 'BP', 'imgpath']
+        else:
+            # 全情報
+            query = """
+                SELECT 
+                    id, imgpath, name, "必要エナジー", "消費AP", 
+                    "カード種類", "BP", "特徴", "発生エナジー", 
+                    "効果", "トリガー"
+                FROM card_table 
+                ORDER BY id
+                LIMIT ? OFFSET ?
+            """
+            columns = [
+                'id', 'imgpath', 'name', '必要エナジー', '消費AP',
+                'カード種類', 'BP', '特徴', '発生エナジー', '効果', 'トリガー'
+            ]
+        
+        cursor.execute(query, [limit, offset])
+        rows = cursor.fetchall()
+        
+        # 結果を辞書形式に変換
+        cards = []
+        for row in rows:
+            card_dict = dict(zip(columns, row))
+            cards.append(card_dict)
+        
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "data": cards,
+            "count": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit,
+            "has_next": page * limit < total_count,
+            "has_prev": page > 1,
+            "minimal": minimal
+        })
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error searching cards: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "カード取得中にエラーが発生しました"
+            }
+        )
+
+@router.get("/cards/search")
+async def search_cards(
+    name: Optional[str] = Query(None, description="カード名での検索"),
+    card_type: Optional[str] = Query(None, description="カード種類"),
+    energy: Optional[str] = Query(None, description="必要エナジー"),
+    card_term: Optional[str] = Query(None, description="作品略称"),
+    card_rank: Optional[str] = Query(None, description="セット略称"),
+    card_term_name: Optional[str] = Query(None, description="作品日本語名"),
+    card_rank_name: Optional[str] = Query(None, description="セット日本語名"),
+    page: int = Query(1, ge=1, description="ページ番号"),
+    limit: int = Query(500, ge=1, le=2000, description="1ページあたりの件数（検索時は多めに設定可能）"),
+    minimal: bool = Query(False, description="最小限の情報のみ取得")
+):
+    """
+    カード検索API（大量データ対応）
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # WHERE条件とパラメータを構築
+        where_conditions = []
+        params = []
+        
+        if name:
+            where_conditions.append("name LIKE ?")
+            params.append(f"%{name}%")
+            
+        if card_type:
+            where_conditions.append("\"カード種類\" = ?")
+            params.append(card_type)
+            
+        if energy:
+            where_conditions.append("\"必要エナジー\" LIKE ?")
+            params.append(f"%{energy}%")
+            
+        if card_term:
+            where_conditions.append("id LIKE ?")
+            params.append(f"%{card_term}%")
+            
+        if card_rank:
+            where_conditions.append("id LIKE ?")
+            params.append(f"%{card_rank}%")
+            
+        if card_term_name:
+            where_conditions.append("\"特徴\" LIKE ?")
+            params.append(f"%{card_term_name}%")
+            
+        if card_rank_name:
+            where_conditions.append("\"効果\" LIKE ? OR \"トリガー\" LIKE ?")
+            params.extend([f"%{card_rank_name}%", f"%{card_rank_name}%"])
+        
+        # WHERE句を構築
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+        
+        # 全件数取得
+        count_query = f"SELECT COUNT(*) FROM card_table {where_clause}"
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()[0]
+        
+        # データ取得
+        offset = (page - 1) * limit
+        
+        if minimal:
+            data_query = f"""
+                SELECT id, name, "カード種類", "BP", imgpath
+                FROM card_table 
+                {where_clause}
+                ORDER BY 
+                    CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+                    id
+                LIMIT ? OFFSET ?
+            """
+            search_params = params + [f"%{name}%" if name else "%", limit, offset]
+            columns = ['id', 'name', 'カード種類', 'BP', 'imgpath']
+        else:
+            data_query = f"""
+                SELECT 
+                    id, imgpath, name, "必要エナジー", "消費AP", 
+                    "カード種類", "BP", "特徴", "発生エナジー", 
+                    "効果", "トリガー"
+                FROM card_table 
+                {where_clause}
+                ORDER BY 
+                    CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+                    id
+                LIMIT ? OFFSET ?
+            """
+            search_params = params + [f"%{name}%" if name else "%", limit, offset]
+            columns = [
+                'id', 'imgpath', 'name', '必要エナジー', '消費AP',
+                'カード種類', 'BP', '特徴', '発生エナジー', '効果', 'トリガー'
+            ]
+        
+        cursor.execute(data_query, search_params)
+        rows = cursor.fetchall()
+        
+        # 結果を辞書形式に変換
+        cards = []
+        for row in rows:
+            card_dict = dict(zip(columns, row))
+            cards.append(card_dict)
+        
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "data": cards,
+            "count": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit,
+            "has_next": page * limit < total_count,
+            "has_prev": page > 1,
+            "minimal": minimal,
+            "search_params": {
+                "name": name,
+                "card_type": card_type,
+                "energy": energy,
+                "card_term": card_term,
+                "card_rank": card_rank,
+                "card_term_name": card_term_name,
+                "card_rank_name": card_rank_name
+            }
+        })
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "検索中にエラーが発生しました"
+            }
+        )
+
+@router.get("/cards/stats")
+async def get_card_stats():
+    """
+    カード統計情報取得API（ダッシュボード用）
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 総件数
+        cursor.execute("SELECT COUNT(*) FROM card_table")
+        total_cards = cursor.fetchone()[0]
+        
+        # カード種類別件数
+        cursor.execute("""
+            SELECT "カード種類", COUNT(*) 
+            FROM card_table 
+            GROUP BY "カード種類" 
+            ORDER BY COUNT(*) DESC
+        """)
+        card_types = dict(cursor.fetchall())
+        
+        # 作品別件数（IDから推定）
+        cursor.execute("""
+            SELECT 
+                substr(id, instr(id, '_') + 1, instr(substr(id, instr(id, '_') + 1), '-') - 1) as series,
+                COUNT(*) 
+            FROM card_table 
+            WHERE id LIKE '%_%-%'
+            GROUP BY series
+            ORDER BY COUNT(*) DESC
+            LIMIT 20
+        """)
+        series_stats = dict(cursor.fetchall())
+        
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "stats": {
+                "total_cards": total_cards,
+                "card_types": card_types,
+                "series_stats": series_stats,
+                "last_updated": "2025-06-26"
+            }
+        })
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "統計情報取得中にエラーが発生しました"
+            }
+        )
+
+@router.get("/cards/search")
+async def search_cards(
+    name: Optional[str] = Query(None, description="カード名での検索"),
+    card_type: Optional[str] = Query(None, description="カード種類"),
+    energy: Optional[str] = Query(None, description="必要エナジー"),
+    card_term: Optional[str] = Query(None, description="作品略称"),
+    card_rank: Optional[str] = Query(None, description="セット略称"),
+    card_term_name: Optional[str] = Query(None, description="作品日本語名"),
+    card_rank_name: Optional[str] = Query(None, description="セット日本語名"),
+    page: int = Query(1, ge=1, description="ページ番号"),
+    limit: int = Query(500, ge=1, le=2000, description="1ページあたりの件数（検索時は多めに設定可能）"),
+    minimal: bool = Query(False, description="最小限の情報のみ取得")
+):
+    """
+    カード検索API（大量データ対応）
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # WHERE条件とパラメータを構築
+        where_conditions = []
+        params = []
+        
+        if name:
+            where_conditions.append("name LIKE ?")
+            params.append(f"%{name}%")
+            
+        if card_type:
+            where_conditions.append("\"カード種類\" = ?")
+            params.append(card_type)
+            
+        if energy:
+            where_conditions.append("\"必要エナジー\" LIKE ?")
+            params.append(f"%{energy}%")
+            
+        if card_term:
+            where_conditions.append("id LIKE ?")
+            params.append(f"%{card_term}%")
+            
+        if card_rank:
+            where_conditions.append("id LIKE ?")
+            params.append(f"%{card_rank}%")
+            
+        if card_term_name:
+            where_conditions.append("\"特徴\" LIKE ?")
+            params.append(f"%{card_term_name}%")
+            
+        if card_rank_name:
+            where_conditions.append("\"効果\" LIKE ? OR \"トリガー\" LIKE ?")
+            params.extend([f"%{card_rank_name}%", f"%{card_rank_name}%"])
+        
+        # WHERE句を構築
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+        
+        # 全件数取得
+        count_query = f"SELECT COUNT(*) FROM card_table {where_clause}"
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()[0]
+        
+        # データ取得
+        offset = (page - 1) * limit
+        
+        if minimal:
+            data_query = f"""
+                SELECT id, name, "カード種類", "BP", imgpath
+                FROM card_table 
+                {where_clause}
+                ORDER BY 
+                    CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+                    id
+                LIMIT ? OFFSET ?
+            """
+            search_params = params + [f"%{name}%" if name else "%", limit, offset]
+            columns = ['id', 'name', 'カード種類', 'BP', 'imgpath']
+        else:
+            data_query = f"""
+                SELECT 
+                    id, imgpath, name, "必要エナジー", "消費AP", 
+                    "カード種類", "BP", "特徴", "発生エナジー", 
+                    "効果", "トリガー"
+                FROM card_table 
+                {where_clause}
+                ORDER BY 
+                    CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+                    id
+                LIMIT ? OFFSET ?
+            """
+            search_params = params + [f"%{name}%" if name else "%", limit, offset]
+            columns = [
+                'id', 'imgpath', 'name', '必要エナジー', '消費AP',
+                'カード種類', 'BP', '特徴', '発生エナジー', '効果', 'トリガー'
+            ]
+        
+        cursor.execute(data_query, search_params)
+        rows = cursor.fetchall()
+        
+        # 結果を辞書形式に変換
+        cards = []
+        for row in rows:
+            card_dict = dict(zip(columns, row))
+            cards.append(card_dict)
+        
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "data": cards,
+            "count": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit,
+            "has_next": page * limit < total_count,
+            "has_prev": page > 1,
+            "minimal": minimal,
+            "search_params": {
+                "name": name,
+                "card_type": card_type,
+                "energy": energy,
+                "card_term": card_term,
+                "card_rank": card_rank,
+                "card_term_name": card_term_name,
+                "card_rank_name": card_rank_name
+            }
+        })
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "検索中にエラーが発生しました"
+            }
+        )
 
 @router.get("/cards/search", response_model=CardsResponse)
 async def search_cards_get(
@@ -167,3 +551,61 @@ async def get_card_rank_names():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving card rank names: {str(e)}")
+    
+
+@router.get("/cards/stats")
+async def get_card_stats():
+    """
+    カード統計情報取得API（ダッシュボード用）
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 総件数
+        cursor.execute("SELECT COUNT(*) FROM card_table")
+        total_cards = cursor.fetchone()[0]
+        
+        # カード種類別件数
+        cursor.execute("""
+            SELECT "カード種類", COUNT(*) 
+            FROM card_table 
+            GROUP BY "カード種類" 
+            ORDER BY COUNT(*) DESC
+        """)
+        card_types = dict(cursor.fetchall())
+        
+        # 作品別件数（IDから推定）
+        cursor.execute("""
+            SELECT 
+                substr(id, instr(id, '_') + 1, instr(substr(id, instr(id, '_') + 1), '-') - 1) as series,
+                COUNT(*) 
+            FROM card_table 
+            WHERE id LIKE '%_%-%'
+            GROUP BY series
+            ORDER BY COUNT(*) DESC
+            LIMIT 20
+        """)
+        series_stats = dict(cursor.fetchall())
+        
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "stats": {
+                "total_cards": total_cards,
+                "card_types": card_types,
+                "series_stats": series_stats,
+                "last_updated": "2025-06-26"
+            }
+        })
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "統計情報取得中にエラーが発生しました"
+            }
+        )

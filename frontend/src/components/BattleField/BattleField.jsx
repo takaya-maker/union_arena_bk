@@ -811,11 +811,11 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
               <h4>{hoveredCard.name}</h4>
             </div>
             <div className="card-detail-image-wrapper">
-              <img 
-                src={getCardImageUrl(hoveredCard.card_id)}
-                alt={hoveredCard.name}
-                className="detail-card-image"
-              />
+            <img 
+              src={getCardImageUrl(hoveredCard.card_id)}
+              alt={hoveredCard.name}
+              className="detail-card-image"
+            />
             </div>
             <div className="card-detail-info">
               {(() => {

@@ -2,6 +2,7 @@
 import sqlite3
 import os
 from typing import List, Dict, Optional
+from pathlib import Path
 
 class DatabaseConnection:
     def __init__(self):
@@ -199,6 +200,64 @@ class DatabaseConnection:
         finally:
             conn.close()
 
+
+def get_db_connection():
+    """
+    SQLiteデータベースへの接続を取得
+    """
+    try:
+        # backend/cardscrap/Card.db を参照
+        current_dir = Path(__file__).parent      # backend/app/database
+        app_dir = current_dir.parent             # backend/app
+        backend_dir = app_dir.parent             # backend
+        db_path = backend_dir / "cardscrap" / "Card.db"
+        
+        if not db_path.exists():
+            print(f"Warning: Database file not found at {db_path}")
+        
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        print(f"Database connected successfully: {db_path}")
+        return conn
+        
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        raise
+
+def test_db_connection():
+    """
+    データベース接続のテスト
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # テーブルの存在確認
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        print("Available tables:")
+        for table in tables:
+            print(f"  - {table[0]}")
+        
+        # card_tableの確認
+        cursor.execute("SELECT COUNT(*) FROM card_table")
+        count = cursor.fetchone()[0]
+        print(f"Total cards in database: {count}")
+        
+        # サンプルデータの取得
+        cursor.execute("SELECT * FROM card_table LIMIT 3")
+        sample_cards = cursor.fetchall()
+        print("Sample cards:")
+        for card in sample_cards:
+            print(f"  - ID: {card['id']}, Name: {card['name']}")
+        
+        conn.close()
+        return True
+        
+    except Exception as e:
+        print(f"Database test failed: {e}")
+        return False
+    
 if __name__ == "__main__":
     db = DatabaseConnection()
     # データベースエンコーディングを確認

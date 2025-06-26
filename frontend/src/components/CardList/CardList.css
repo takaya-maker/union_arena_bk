@@ -1,200 +1,350 @@
-/* frontend/src/components/CardList/CardList.css */
-.card-list-container {
+/* frontend/src/components/CardList/VirtualizedCardList.css */
+
+body, html {
+  overflow-x: hidden;
+}
+
+.virtualized-card-list-container {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
 }
 
-.loading, .error {
-  text-align: center;
-  padding: 40px;
-  font-size: 1.2em;
-}
-
-.error {
-  color: #dc3545;
-}
-
-.retry-button {
-  margin-left: 12px;
-  padding: 8px 16px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.retry-button:hover {
-  background: #0056b3;
-}
-
 /* 検索フォーム */
 .search-form {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
+  background: linear-gradient(90deg, #e3f0ff 0%, #f8f9fa 100%);
+  border-left: 5px solid #007bff;
+  padding: 24px 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+  width: 100%;
+  max-width: 1200px;
+  margin-left: 0;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .search-form h2 {
-  margin: 0 0 16px 0;
+  margin: 0 0 15px 0;
   color: #333;
+  font-size: 1.5rem;
 }
 
 .search-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .search-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .search-field label {
-  font-weight: bold;
+  font-weight: 600;
+  margin-bottom: 5px;
   color: #555;
-  font-size: 0.9em;
+  font-size: 0.9rem;
 }
 
 .search-field input,
 .search-field select {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1em;
+  padding: 12px 16px;
+  border: 2px solid #b3d1ff;
+  border-radius: 8px;
+  font-size: 15px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .search-field input:focus,
 .search-field select:focus {
-  outline: none;
   border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.15);
 }
 
 .search-buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.search-button,
 .show-all-button {
-  padding: 10px 20px;
+  background: linear-gradient(90deg, #007bff 0%, #28a745 100%);
+  color: #fff;
+  font-weight: bold;
   border: none;
-  border-radius: 4px;
-  font-size: 1em;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.search-button {
-  background: #007bff;
-  color: white;
-}
-
-.search-button:hover {
-  background: #0056b3;
-}
-
-.show-all-button {
-  background: #6c757d;
-  color: white;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.08);
 }
 
 .show-all-button:hover {
-  background: #545862;
+  background: linear-gradient(90deg, #0056b3 0%, #218838 100%);
+}
+
+.search-status {
+  color: #666;
+  font-size: 14px;
+  padding: 8px 12px;
+  background: #e9ecef;
+  border-radius: 4px;
 }
 
 /* カード一覧セクション */
 .cards-section {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  overflow: hidden;
+  padding: 20px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 1200px;
+  margin-left: 0;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .cards-header {
-  padding: 16px 20px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #eee;
 }
 
 .cards-header h3 {
   margin: 0;
   color: #333;
+  font-size: 1.3rem;
 }
 
-.selected-info {
-  background: #d1ecf1;
-  color: #0c5460;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.9em;
-  font-weight: bold;
-}
-
-/* CardCompact用のグリッドレイアウト */
-.cards-grid {
+/* 仮想化グリッドコンテナ */
+.virtualized-grid-container,
+.fallback-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 18px;
+  width: 100%;
+  max-width: 1200px;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: 0 8px;
+  overflow-x: hidden;
 }
 
-/* CardCompactコンポーネントの調整 */
-.cards-grid .card-compact {
-  margin: 0;
-  min-height: auto;
+/* カードアイテムラッパー */
+.card-item-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 10px 8px 16px 8px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+}
+
+.card-item-wrapper:hover {
+  box-shadow: 0 8px 24px rgba(0,123,255,0.18);
+  transform: translateY(-6px) scale(1.04);
+  z-index: 2;
+}
+
+.card-item-wrapper img,
+.card-compact-image {
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+  object-position: center;
+  background: #f8f8f8;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  display: block;
+}
+.card-item-wrapper img:hover,
+.card-compact-image:hover {
+  box-shadow: 0 4px 16px rgba(0,123,255,0.15);
+  transform: translateY(-4px) scale(1.03);
+}
+
+.card-item-wrapper .card-title {
+  margin-top: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* ローディング・エラー・空状態 */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-left: 10px;
+  border: 2px solid #ccc;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 6px;
+  margin: 20px 0;
+  border: 1px solid #f5c6cb;
 }
 
 .no-cards {
   text-align: center;
-  padding: 40px;
+  padding: 60px 20px;
   color: #666;
-  font-size: 1.1em;
+  font-size: 1.1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
 }
 
-/* レスポンシブデザイン */
+/* デバッグ情報 */
+.debug-info {
+  font-family: monospace;
+  font-size: 12px;
+  background: #f0f0f0 !important;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-left: 0;
+  margin-right: auto;
+  width: fit-content;
+  min-width: 200px;
+}
+
+.debug-info button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.debug-info button:hover {
+  background: #c82333;
+}
+
+/* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .card-list-container {
+  .virtualized-card-list-container {
     padding: 10px;
   }
-
+  
+  .search-form {
+    max-width: 100%;
+    padding: 20px 15px;
+  }
+  
   .search-inputs {
     grid-template-columns: 1fr;
+    gap: 15px;
   }
-
-  .search-buttons {
-    flex-direction: column;
-  }
-
+  
   .cards-header {
     flex-direction: column;
-    gap: 8px;
     align-items: flex-start;
+    gap: 10px;
   }
-
-  .cards-grid {
-    grid-template-columns: 1fr;
-    padding: 10px;
-    gap: 12px;
+  
+  .search-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .show-all-button {
+    width: 100%;
   }
 }
 
 @media (max-width: 480px) {
   .search-form {
-    padding: 12px;
+    padding: 15px 12px;
+    max-width: 100%;
   }
+  
+  .cards-section {
+    padding: 15px;
+  }
+  
+  .card-item-wrapper {
+    padding: 4px;
+  }
+  
+  .search-inputs {
+    gap: 12px;
+  }
+}
 
-  .cards-grid {
-    gap: 8px;
+.fallback-grid, .virtualized-grid-container {
+  gap: 24px !important;
+}
+
+@media (max-width: 900px) {
+  .virtualized-grid-container, .fallback-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
+}
+@media (max-width: 600px) {
+  .virtualized-grid-container, .fallback-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fallback-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.card-list-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: 0;
+  margin-right: auto;
+  padding: 0 16px;
+  box-sizing: border-box;
 }

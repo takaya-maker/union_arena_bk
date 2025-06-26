@@ -85,7 +85,11 @@ function App() {
       </header>
 
       <main className={`App-main ${currentView === 'battle-field' ? 'battle-field' : ''}`}>
-        {currentView === 'cards' && <CardList />}
+        {currentView === 'cards' && (
+          <div className="centered-section cards-section">
+            <CardList />
+          </div>
+        )}
         {currentView === 'deck-builder' && (
           <DeckBuilder 
             onDeckSaved={(deck) => {
