@@ -122,7 +122,7 @@ const CardList = () => {
   const [selectedCard, setSelectedCard] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [cardTypes, setCardTypes] = useState([]);
-  const [cardTerms, setCardTerms] = useState([]);
+  const [cardTermNames, setCardTermNames] = useState([]);
   const [cardRanks, setCardRanks] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [allCards, setAllCards] = useState([]);
@@ -165,12 +165,12 @@ const CardList = () => {
       const [
         cardsResponse, 
         typesResponse, 
-        termsResponse, 
+        termNamesResponse, 
         ranksResponse
       ] = await Promise.all([
         cardAPI.getAllCards(),
         cardAPI.getCardTypes(),
-        cardAPI.getCardTerms(),
+        cardAPI.getCardTermNames(),
         cardAPI.getCardRanks()
       ]);
 
@@ -187,10 +187,10 @@ const CardList = () => {
         setCardTypes(typesResponse.data);
       }
 
-      if (termsResponse.success) {
-        setCardTerms(termsResponse.data || []);
-      } else if (termsResponse.data) {
-        setCardTerms(termsResponse.data);
+      if (termNamesResponse.success) {
+        setCardTermNames(termNamesResponse.data || []);
+      } else if (termNamesResponse.data) {
+        setCardTermNames(termNamesResponse.data);
       }
 
       if (ranksResponse.success) {
@@ -359,14 +359,14 @@ const CardList = () => {
           </div>
 
           <div className="search-field">
-            <label>作品:</label>
+            <label>アニメタイトル:</label>
             <select
-              value={searchParams.card_term}
-              onChange={(e) => handleSearchParamChange('card_term', e.target.value)}
+              value={searchParams.card_term_name}
+              onChange={(e) => handleSearchParamChange('card_term_name', e.target.value)}
             >
               <option value="">すべて</option>
-              {cardTerms.map(term => (
-                <option key={term} value={term}>{term}</option>
+              {cardTermNames.map(termName => (
+                <option key={termName} value={termName}>{termName}</option>
               ))}
             </select>
           </div>
