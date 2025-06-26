@@ -9,6 +9,7 @@ CARD_RANKS = [
     "UA01BT", "UA02BT", "UA03BT", "UA04BT", "UA05BT", "UA06BT", "UA07BT", "UA08BT", "UA09BT", "UA10BT",
     "UA11BT", "UA12BT", "UA13BT", "UA14BT", "UA15BT", "UA16BT", "UA17BT", "UA18BT", "UA19BT", "UA20BT",
     "UA21BT", "UA22BT", "UA23BT", "UA24BT", "UA25BT", "UA26BT", "UA27BT", "UA28BT", "UA29BT", "UA30BT",
+     "UA31BT", "UA32BT", "UA33BT", "UA34BT", "UA35BT", "UA36BT", "UA37BT", "UA38BT","UA39BT",
     "UA01PC", "UA02PC", "UA02NC", "UA01NC"
 ]
 
@@ -16,11 +17,13 @@ CARD_RANKS = [
 CARD_TERMS = [
     "CGH", "HTR", "JJK", "IMS", "KMY", "TOA", "TSK", "BLC", "BTR", "MHA",
     "GNT", "BLK", "TKN", "DST", "SAO", "SYN", "TRK", "NIK", "HIQ", "BCV",
-    "YYH", "GMR", "AOT", "SHY", "AND", "RLY", "GIM", "KJ8", "KMR", "WBK"
+    "YYH", "GMR", "AOT", "SHY", "AND", "RLY", "GIM", "KJ8", "KMR", "WBK",
+    "SNF","KIN","HIQ"
 ]
 
 # カードシリーズの日本語名マッピング
 CARD_TERM_NAMES = {
+    "HIQ": "ハイキュー",
     "CGH": "コードギアス",
     "HTR": "HUNTER×HUNTER",
     "JJK": "呪術廻戦",
@@ -50,7 +53,9 @@ CARD_TERM_NAMES = {
     "GIM": "銀魂",
     "KJ8": "境界のRINNE",
     "KMR": "カミヨミ",
-    "WBK": "ワールドトリガー"
+    "WBK": "ワールドトリガー",
+    "SNF":"シャングリラフロンティア",
+    "KIN":"キン肉マン"
 }
 
 # カードセットの日本語名マッピング
@@ -95,6 +100,15 @@ CARD_RANK_NAMES = {
     "UA28BT": "メインセット28",
     "UA29BT": "メインセット29",
     "UA30BT": "メインセット30",
+    "UA31BT": "メインセット31",
+    "UA32BT": "メインセット32",
+    "UA33BT": "メインセット33",
+    "UA34BT": "メインセット34",
+    "UA35BT": "メインセット35",
+    "UA36BT": "メインセット36",
+    "UA37BT": "メインセット37",
+    "UA38BT": "メインセット38",
+    "UA39BT": "メインセット39",
     "UA01PC": "PC版セット01",
     "UA02PC": "PC版セット02",
     "UA01NC": "NC版セット01",

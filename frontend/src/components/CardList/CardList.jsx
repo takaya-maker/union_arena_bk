@@ -25,6 +25,9 @@ const CardList = () => {
   const [cardRanks, setCardRanks] = useState([]);
   const [cardTermNames, setCardTermNames] = useState([]);
   const [cardRankNames, setCardRankNames] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  const [total, setTotal] = useState(0);
 
   // 初期データ読み込み
   useEffect(() => {
@@ -44,7 +47,7 @@ const CardList = () => {
         termNamesResponse,
         rankNamesResponse
       ] = await Promise.all([
-        cardAPI.getAllCards(),
+        cardAPI.getAllCards(page, limit),
         cardAPI.getCardTypes(),
         cardAPI.getCardTerms(),
         cardAPI.getCardRanks(),
@@ -54,6 +57,7 @@ const CardList = () => {
 
       if (cardsResponse.success) {
         setCards(cardsResponse.data);
+        setTotal(cardsResponse.count);
       }
 
       if (typesResponse.success) {
@@ -146,6 +150,26 @@ const CardList = () => {
       [field]: value
     }));
   };
+
+  const loadCards = async (pageNum = 1) => {
+    setLoading(true);
+    try {
+      const response = await cardAPI.getAllCards(pageNum, limit);
+      if (response.success) {
+        setCards(response.data);
+        setTotal(response.count);
+        setPage(response.page);
+      }
+    } catch (err) {
+      setError('カードの取得に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCards(page);
+  }, [page, limit]);
 
   if (loading) {
     return (
@@ -300,6 +324,11 @@ const CardList = () => {
         onClose={handleCloseDetailModal}
         showAddButton={false}
       />
+      <div className="pagination">
+        <button onClick={() => setPage(page - 1)} disabled={page === 1}>前へ</button>
+        <span>{page} / {Math.ceil(total / limit)}ページ</span>
+        <button onClick={() => setPage(page + 1)} disabled={page >= Math.ceil(total / limit)}>次へ</button>
+      </div>
     </div>
   );
 };
