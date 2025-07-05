@@ -141,7 +141,14 @@ class SoundManager {
       const audio = this.audioElements[soundPath];
       audio.volume = this.bgmVolume * this.volume;
       audio.play().catch(error => {
-        console.warn(`Failed to play BGM: ${bgmName}`, error);
+        // エラーの種類に応じて適切なメッセージを表示
+        if (error.name === 'AbortError') {
+          console.log(`BGM playback was interrupted: ${bgmName}`);
+        } else if (error.name === 'NotAllowedError') {
+          console.log(`BGM playback not allowed (autoplay policy): ${bgmName}`);
+        } else {
+          console.warn(`Failed to play BGM: ${bgmName}`, error);
+        }
         // 生成BGMは再生しない
       });
       this.currentBGM = audio;

@@ -1,0 +1,534 @@
+/* バトルシステム用CSS */
+/* src/components/BattleField/BattleSystemUI.css */
+
+.battle-system-ui {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* バトルモーダル */
+  .battle-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(10px);
+    animation: modalFadeIn 0.3s ease;
+  }
+  
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .battle-modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding: 30px;
+    border-radius: 20px;
+    border: 3px solid #4a5568;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+    max-width: 600px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .battle-modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #e53e3e, #4299e1, #38a169, #ecc94b, #805ad5);
+    animation: energyFlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes energyFlow {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+  }
+  
+  .battle-modal h3 {
+    color: #e2e8f0;
+    font-size: 28px;
+    margin-bottom: 25px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* 攻撃者情報表示 */
+  .attacker-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(229, 62, 62, 0.2);
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid rgba(229, 62, 62, 0.4);
+    margin-bottom: 25px;
+  }
+  
+  .battle-card-image {
+    width: 100px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .card-stats {
+    flex: 1;
+    text-align: left;
+  }
+  
+  .card-stats p {
+    color: #e2e8f0;
+    margin: 8px 0;
+    font-size: 16px;
+  }
+  
+  .card-stats strong {
+    color: #4299e1;
+    font-size: 18px;
+  }
+  
+  /* バトル情報表示 */
+  .battle-info {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+  }
+  
+  .attacker-display, .blocker-display {
+    background: rgba(66, 153, 225, 0.2);
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid rgba(66, 153, 225, 0.4);
+    flex: 1;
+  }
+  
+  .attacker-display {
+    background: rgba(229, 62, 62, 0.2);
+    border-color: rgba(229, 62, 62, 0.4);
+  }
+  
+  .attacker-display h4, .blocker-display h4 {
+    color: #e2e8f0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+  
+  .attacker-display .battle-card-image,
+  .blocker-display .battle-card-image {
+    width: 80px;
+    height: 112px;
+    margin-bottom: 10px;
+  }
+  
+  .attacker-display p, .blocker-display p {
+    color: #cbd5e0;
+    margin: 4px 0;
+    font-size: 14px;
+  }
+  
+  /* バトル解決表示 */
+  .battle-resolution {
+    margin-bottom: 25px;
+  }
+  
+  .battle-participants {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 15px;
+  }
+  
+  .attacker-final, .blocker-final, .no-blocker {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .attacker-final {
+    border-color: rgba(229, 62, 62, 0.5);
+    background: rgba(229, 62, 62, 0.1);
+  }
+  
+  .blocker-final {
+    border-color: rgba(66, 153, 225, 0.5);
+    background: rgba(66, 153, 225, 0.1);
+  }
+  
+  .no-blocker {
+    border-color: rgba(128, 90, 213, 0.5);
+    background: rgba(128, 90, 213, 0.1);
+  }
+  
+  .vs-indicator {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ecc94b;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  
+  .attacker-final h4, .blocker-final h4, .no-blocker h4 {
+    color: #e2e8f0;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+  
+  .attacker-final p, .blocker-final p, .no-blocker p {
+    color: #cbd5e0;
+    margin: 4px 0;
+    font-size: 14px;
+  }
+  
+  .bp-display {
+    font-weight: bold;
+    font-size: 16px !important;
+    color: #4299e1 !important;
+  }
+  
+  .player-damage-preview {
+    padding: 10px;
+    background: rgba(229, 62, 62, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(229, 62, 62, 0.5);
+  }
+  
+  .player-damage-preview p {
+    color: #fc8181 !important;
+    font-weight: bold;
+  }
+  
+  /* バトル結果予想 */
+  .battle-prediction {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #4a5568;
+  }
+  
+  .battle-result-preview p {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+  }
+  
+  .attacker-wins {
+    color: #fc8181 !important;
+  }
+  
+  .blocker-wins {
+    color: #63b3ed !important;
+  }
+  
+  .tie-result {
+    color: #ecc94b !important;
+  }
+  
+  .direct-damage {
+    color: #b794f6 !important;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  /* バトル指示テキスト */
+  .battle-instruction {
+    background: rgba(128, 90, 213, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(128, 90, 213, 0.4);
+  }
+  
+  .battle-instruction p {
+    color: #b794f6;
+    margin: 0;
+    font-weight: bold;
+  }
+  
+  /* バトルボタン */
+  .battle-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .battle-buttons button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    min-width: 140px;
+  }
+  
+  .confirm-button {
+    background: linear-gradient(45deg, #38a169, #68d391);
+    color: white;
+  }
+  
+  .confirm-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(56, 161, 105, 0.4);
+  }
+  
+  .attack-button {
+    background: linear-gradient(45deg, #e53e3e, #fc8181);
+  }
+  
+  .attack-button:hover {
+    box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
+  }
+  
+  .block-button {
+    background: linear-gradient(45deg, #4299e1, #63b3ed);
+  }
+  
+  .block-button:hover {
+    box-shadow: 0 6px 20px rgba(66, 153, 225, 0.4);
+  }
+  
+  .resolve-button {
+    background: linear-gradient(45deg, #805ad5, #b794f6);
+  }
+  
+  .resolve-button:hover {
+    box-shadow: 0 6px 20px rgba(128, 90, 213, 0.4);
+  }
+  
+  .skip-button {
+    background: linear-gradient(45deg, #ecc94b, #f6e05e);
+    color: #1a1a2e;
+  }
+  
+  .skip-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(236, 201, 75, 0.4);
+  }
+  
+  .cancel-button {
+    background: linear-gradient(45deg, #718096, #a0aec0);
+    color: white;
+  }
+  
+  .cancel-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(113, 128, 150, 0.4);
+  }
+  
+  /* フィールドオーバーレイ */
+  .battle-field-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+  }
+  
+  .player-front-battle, .opponent-front-battle {
+    position: absolute;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .player-front-battle {
+    bottom: 200px; /* 手札の上 */
+  }
+  
+  .opponent-front-battle {
+    top: 150px; /* ヘッダーの下 */
+  }
+  
+  /* バトルキャラクター状態表示 */
+  .battle-character {
+    aspect-ratio: 3/4;
+    position: relative;
+    pointer-events: auto;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .battle-character.can-attack {
+    box-shadow: 0 0 15px rgba(229, 62, 62, 0.8);
+    border: 2px solid #e53e3e;
+    animation: attackReady 1s ease-in-out infinite;
+  }
+  
+  .battle-character.can-block {
+    box-shadow: 0 0 15px rgba(66, 153, 225, 0.8);
+    border: 2px solid #4299e1;
+    animation: blockReady 1s ease-in-out infinite;
+  }
+  
+  .battle-character.selected-attacker {
+    box-shadow: 0 0 20px rgba(229, 62, 62, 1);
+    border: 3px solid #e53e3e;
+    transform: scale(1.05);
+  }
+  
+  .battle-character.selected-blocker {
+    box-shadow: 0 0 20px rgba(66, 153, 225, 1);
+    border: 3px solid #4299e1;
+    transform: scale(1.05);
+  }
+  
+  .battle-character.attacking {
+    box-shadow: 0 0 25px rgba(229, 62, 62, 1);
+    border: 3px solid #e53e3e;
+    animation: attacking 0.5s ease-in-out infinite;
+  }
+  
+  .battle-character.blocking {
+    box-shadow: 0 0 25px rgba(66, 153, 225, 1);
+    border: 3px solid #4299e1;
+    animation: blocking 0.5s ease-in-out infinite;
+  }
+  
+  @keyframes attackReady {
+    0%, 100% { box-shadow: 0 0 15px rgba(229, 62, 62, 0.8); }
+    50% { box-shadow: 0 0 25px rgba(229, 62, 62, 1); }
+  }
+  
+  @keyframes blockReady {
+    0%, 100% { box-shadow: 0 0 15px rgba(66, 153, 225, 0.8); }
+    50% { box-shadow: 0 0 25px rgba(66, 153, 225, 1); }
+  }
+  
+  @keyframes attacking {
+    0%, 100% { transform: scale(1.05); }
+    50% { transform: scale(1.1); }
+  }
+  
+  @keyframes blocking {
+    0%, 100% { transform: scale(1.05) rotate(-1deg); }
+    50% { transform: scale(1.1) rotate(1deg); }
+  }
+  
+  /* インジケーター */
+  .attack-indicator, .block-indicator, .rest-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    z-index: 10;
+  }
+  
+  .attack-indicator {
+    background: rgba(229, 62, 62, 0.9);
+    animation: bounce 1s ease-in-out infinite;
+  }
+  
+  .block-indicator {
+    background: rgba(66, 153, 225, 0.9);
+    animation: bounce 1s ease-in-out infinite;
+  }
+  
+  .rest-indicator {
+    background: rgba(113, 128, 150, 0.9);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .battle-modal-content {
+      padding: 20px;
+      max-width: 95%;
+    }
+    
+    .battle-info {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .battle-participants {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .vs-indicator {
+      order: 1;
+      margin: 10px 0;
+    }
+    
+    .battle-card-image {
+      width: 80px;
+      height: 112px;
+    }
+    
+    .battle-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .battle-buttons button {
+      width: 100%;
+      max-width: 200px;
+    }
+    
+    .player-front-battle, .opponent-front-battle {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 300px;
+    }
+  }

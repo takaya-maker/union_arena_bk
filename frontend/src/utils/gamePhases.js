@@ -1,111 +1,57 @@
-// ゲームフェーズの定義
-export const GAME_PHASES = {
-  DRAW: 'draw',           // ドローフェーズ
-  MAIN: 'main',           // メインフェーズ
-  BATTLE: 'battle',       // バトルフェーズ
-  END: 'end'              // エンドフェーズ
+// Union Arena正式ルールに基づくフェーズ管理
+export const UNION_ARENA_PHASES = {
+  START: 'start',
+  MOVEMENT: 'movement', 
+  MAIN: 'main',
+  END: 'end'
 };
 
-// フェーズの表示名
 export const PHASE_DISPLAY_NAMES = {
-  [GAME_PHASES.DRAW]: 'ドローフェーズ',
-  [GAME_PHASES.MAIN]: 'メインフェーズ',
-  [GAME_PHASES.BATTLE]: 'バトルフェーズ',
-  [GAME_PHASES.END]: 'エンドフェーズ'
+  [UNION_ARENA_PHASES.START]: 'スタートフェーズ',
+  [UNION_ARENA_PHASES.MOVEMENT]: 'ムーブメントフェーズ',
+  [UNION_ARENA_PHASES.MAIN]: 'メインフェーズ',
+  [UNION_ARENA_PHASES.END]: 'エンドフェーズ'
 };
 
-// フェーズの順序
-export const PHASE_ORDER = [
-  GAME_PHASES.DRAW,
-  GAME_PHASES.MAIN,
-  GAME_PHASES.BATTLE,
-  GAME_PHASES.END
-];
-
-// フェーズ管理クラス
-export class PhaseManager {
+export class UnionArenaPhaseManager {
   constructor() {
-    this.currentPhase = GAME_PHASES.DRAW;
-    this.phaseIndex = 0;
-    this.phaseHistory = [];
+    this.currentPhase = UNION_ARENA_PHASES.START;
   }
 
-  // 現在のフェーズを取得
   getCurrentPhase() {
     return this.currentPhase;
   }
 
-  // 次のフェーズに進む
   nextPhase() {
-    this.phaseIndex = (this.phaseIndex + 1) % PHASE_ORDER.length;
-    this.currentPhase = PHASE_ORDER[this.phaseIndex];
-    this.phaseHistory.push({
-      phase: this.currentPhase,
-      timestamp: Date.now()
-    });
+    const phaseOrder = [
+      UNION_ARENA_PHASES.START,
+      UNION_ARENA_PHASES.MOVEMENT,
+      UNION_ARENA_PHASES.MAIN,
+      UNION_ARENA_PHASES.END
+    ];
+    
+    const currentIndex = phaseOrder.indexOf(this.currentPhase);
+    const nextIndex = (currentIndex + 1) % phaseOrder.length;
+    this.currentPhase = phaseOrder[nextIndex];
     return this.currentPhase;
   }
 
-  // 特定のフェーズに設定
-  setPhase(phase) {
-    if (PHASE_ORDER.includes(phase)) {
-      this.currentPhase = phase;
-      this.phaseIndex = PHASE_ORDER.indexOf(phase);
-      this.phaseHistory.push({
-        phase: this.currentPhase,
-        timestamp: Date.now()
-      });
-    }
-    return this.currentPhase;
-  }
-
-  // フェーズの表示名を取得
-  getPhaseDisplayName() {
-    return PHASE_DISPLAY_NAMES[this.currentPhase];
-  }
-
-  // フェーズ履歴を取得
-  getPhaseHistory() {
-    return this.phaseHistory;
-  }
-
-  // フェーズをリセット
   reset() {
-    this.currentPhase = GAME_PHASES.DRAW;
-    this.phaseIndex = 0;
-    this.phaseHistory = [];
+    this.currentPhase = UNION_ARENA_PHASES.START;
+  }
+
+  canPerformAction(action) {
+    switch (action) {
+      case 'draw':
+        return this.currentPhase === UNION_ARENA_PHASES.START;
+      case 'move':
+        return this.currentPhase === UNION_ARENA_PHASES.MOVEMENT;
+      case 'playCard':
+      case 'activateMain':
+      case 'attack':
+        return this.currentPhase === UNION_ARENA_PHASES.MAIN;
+      default:
+        return false;
+    }
   }
 }
-
-// フェーズごとのアクション制限
-export const PHASE_ACTIONS = {
-  [GAME_PHASES.DRAW]: {
-    canDraw: true,
-    canPlayCards: false,
-    canAttack: false,
-    canUseSkills: false
-  },
-  [GAME_PHASES.MAIN]: {
-    canDraw: false,
-    canPlayCards: true,
-    canAttack: false,
-    canUseSkills: true
-  },
-  [GAME_PHASES.BATTLE]: {
-    canDraw: false,
-    canPlayCards: false,
-    canAttack: true,
-    canUseSkills: true
-  },
-  [GAME_PHASES.END]: {
-    canDraw: false,
-    canPlayCards: false,
-    canAttack: false,
-    canUseSkills: false
-  }
-};
-
-// フェーズごとのアクションが可能かチェック
-export function canPerformAction(phase, action) {
-  return PHASE_ACTIONS[phase]?.[action] || false;
-} 

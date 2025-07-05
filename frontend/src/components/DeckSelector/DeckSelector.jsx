@@ -20,13 +20,18 @@ const DeckSelector = ({ duelMode, onDeckSelect, onBackToMenu }) => {
       }
       const data = await response.json();
       
+      console.log('DeckSelector: API response:', data);
+      
       // APIレスポンスの形式に合わせて修正
       if (data.success && data.data && Array.isArray(data.data)) {
+        console.log('DeckSelector: Setting decks:', data.data);
         setDecks(data.data);
       } else {
+        console.log('DeckSelector: No valid deck data found');
         setDecks([]);
       }
     } catch (err) {
+      console.error('DeckSelector: Error fetching decks:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -34,6 +39,9 @@ const DeckSelector = ({ duelMode, onDeckSelect, onBackToMenu }) => {
   };
 
   const handleDeckSelect = (deck) => {
+    console.log('DeckSelector: Selected deck:', deck);
+    console.log('DeckSelector: Deck cards:', deck.cards);
+    console.log('DeckSelector: Deck cards length:', deck.cards?.length);
     onDeckSelect(deck, duelMode);
   };
 

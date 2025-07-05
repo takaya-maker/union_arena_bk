@@ -141,7 +141,7 @@ async def search_cards(
             params.append(f"%{card_rank}%")
             
         if card_term_name:
-            where_conditions.append("\"特徴\" LIKE ?")
+            where_conditions.append("card_term_name LIKE ?")
             params.append(f"%{card_term_name}%")
             
         if card_rank_name:
@@ -336,7 +336,7 @@ async def search_cards(
             params.append(f"%{card_rank}%")
             
         if card_term_name:
-            where_conditions.append("\"特徴\" LIKE ?")
+            where_conditions.append("card_term_name LIKE ?")
             params.append(f"%{card_term_name}%")
             
         if card_rank_name:

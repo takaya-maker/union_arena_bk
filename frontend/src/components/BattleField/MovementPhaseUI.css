@@ -1,0 +1,481 @@
+/* Movement Phase用CSS */
+/* src/components/BattleField/MovementPhaseUI.css */
+
+.movement-phase-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 500;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+  }
+  
+  /* Movement Phase説明 */
+  .movement-instructions {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: linear-gradient(135deg, #128395 0%, #1a365d 100%);
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #4299e1;
+    box-shadow: 0 10px 30px rgba(66, 153, 225, 0.3);
+    max-width: 300px;
+    z-index: 600;
+  }
+  
+  .movement-header {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  
+  .movement-header h3 {
+    color: #63b3ed;
+    font-size: 18px;
+    margin: 0 0 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .movement-header p {
+    color: #e2e8f0;
+    margin: 0;
+    font-size: 14px;
+  }
+  
+  .movement-rules ul {
+    color: #cbd5e0;
+    font-size: 12px;
+    margin: 0;
+    padding-left: 16px;
+    line-height: 1.6;
+  }
+  
+  .movement-rules li {
+    margin-bottom: 8px;
+  }
+  
+  /* 選択中キャラクター情報 */
+  .selected-character-info {
+    position: fixed;
+    top: 80px;
+    left: 20px;
+    background: linear-gradient(135deg, #553c9a 0%, #1a1a2e 100%);
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #805ad5;
+    box-shadow: 0 10px 30px rgba(128, 90, 213, 0.3);
+    max-width: 320px;
+    z-index: 600;
+  }
+  
+  .selected-card-display {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .selected-card-image {
+    width: 60px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #b794f6;
+    box-shadow: 0 4px 15px rgba(128, 90, 213, 0.5);
+  }
+  
+  .selected-card-details {
+    flex: 1;
+  }
+  
+  .selected-card-details h4 {
+    color: #b794f6;
+    margin: 0 0 8px 0;
+    font-size: 16px;
+  }
+  
+  .selected-card-details p {
+    color: #e2e8f0;
+    margin: 4px 0;
+    font-size: 12px;
+  }
+  
+  .has-step {
+    color: #68d391 !important;
+    font-weight: bold;
+  }
+  
+  .no-step {
+    color: #fc8181 !important;
+  }
+  
+  .cancel-movement-button {
+    background: linear-gradient(45deg, #718096, #a0aec0);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+  
+  .cancel-movement-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(113, 128, 150, 0.4);
+  }
+  
+  /* フィールドオーバーレイ */
+  .movement-field-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 800px;
+  }
+  
+  .movement-front-line, .movement-energy-line {
+    margin-bottom: 30px;
+  }
+  
+  .movement-front-line h4, .movement-energy-line h4 {
+    color: #e2e8f0;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  }
+  
+  .movement-front-line h4 {
+    color: #fc8181;
+  }
+  
+  .movement-energy-line h4 {
+    color: #63b3ed;
+  }
+  
+  .movement-line-slots {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  /* 移動スロット */
+  .movement-slot {
+    aspect-ratio: 3/4;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  
+  .movement-slot.empty {
+    border: 3px dashed rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .movement-slot.occupied {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .movement-slot.front-slot.empty {
+    border-color: rgba(252, 129, 129, 0.5);
+    background: rgba(252, 129, 129, 0.1);
+  }
+  
+  .movement-slot.energy-slot.empty {
+    border-color: rgba(99, 179, 237, 0.5);
+    background: rgba(99, 179, 237, 0.1);
+  }
+  
+  .movement-slot.selected-source {
+    border: 3px solid #805ad5;
+    background: rgba(128, 90, 213, 0.3);
+    box-shadow: 0 0 20px rgba(128, 90, 213, 0.6);
+    animation: selectedPulse 1s ease-in-out infinite;
+  }
+  
+  .movement-slot.available-destination {
+    border: 3px solid #38a169;
+    background: rgba(56, 161, 105, 0.3);
+    box-shadow: 0 0 15px rgba(56, 161, 105, 0.6);
+    animation: destinationGlow 1.5s ease-in-out infinite;
+  }
+  
+  .movement-slot.drag-over {
+    border: 3px solid #ecc94b;
+    background: rgba(236, 201, 75, 0.3);
+    box-shadow: 0 0 20px rgba(236, 201, 75, 0.8);
+    transform: scale(1.05);
+  }
+  
+  .movement-slot.being-dragged {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  
+  @keyframes selectedPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(128, 90, 213, 0.6); }
+    50% { box-shadow: 0 0 30px rgba(128, 90, 213, 0.9); }
+  }
+  
+  @keyframes destinationGlow {
+    0%, 100% { box-shadow: 0 0 15px rgba(56, 161, 105, 0.6); }
+    50% { box-shadow: 0 0 25px rgba(56, 161, 105, 0.9); }
+  }
+  
+  /* 移動キャラクター */
+  .movement-character {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .movement-character.moveable {
+    cursor: grab;
+  }
+  
+  .movement-character.moveable:active {
+    cursor: grabbing;
+  }
+  
+  .movement-character.immovable {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  .movement-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  
+  /* キャラクター状態インジケーター */
+  .rest-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    z-index: 10;
+  }
+  
+  .move-indicator {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(56, 161, 105, 0.9);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    animation: moveReady 1s ease-in-out infinite;
+  }
+  
+  .step-indicator {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background: rgba(236, 201, 75, 0.9);
+    color: #1a1a2e;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  
+  .energy-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(99, 179, 237, 0.9);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+  
+  @keyframes moveReady {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+  
+  /* 空きスロットコンテンツ */
+  .empty-slot-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .destination-indicator {
+    text-align: center;
+    color: #68d391;
+    font-weight: bold;
+  }
+  
+  .destination-indicator span {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 5px;
+  }
+  
+  .destination-arrow {
+    font-size: 20px;
+    animation: arrowBounce 1s ease-in-out infinite;
+  }
+  
+  @keyframes arrowBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  
+  /* ドラッグ中の説明 */
+  .drag-instructions {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #e53e3e 0%, #742a2a 100%);
+    padding: 15px 25px;
+    border-radius: 15px;
+    border: 2px solid #fc8181;
+    box-shadow: 0 10px 30px rgba(229, 62, 62, 0.3);
+    z-index: 600;
+    animation: slideUp 0.3s ease;
+  }
+  
+  @keyframes slideUp {
+    from {
+      transform: translate(-50%, 100%);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+  
+  .drag-info h4 {
+    color: #fc8181;
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    text-align: center;
+  }
+  
+  .drag-info p {
+    color: #fed7d7;
+    margin: 0;
+    font-size: 14px;
+    text-align: center;
+  }
+  
+  .step-warning {
+    background: rgba(229, 62, 62, 0.3);
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 8px !important;
+    border: 1px solid rgba(229, 62, 62, 0.5);
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .movement-instructions, .selected-character-info {
+      position: static;
+      margin: 10px;
+      max-width: none;
+    }
+    
+    .movement-field-overlay {
+      width: 95%;
+      top: 45%;
+    }
+    
+    .movement-line-slots {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    
+    .selected-card-display {
+      flex-direction: column;
+      text-align: center;
+    }
+    
+    .selected-card-image {
+      width: 80px;
+      height: 112px;
+      margin: 0 auto;
+    }
+    
+    .drag-instructions {
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      transform: none;
+      padding: 12px;
+    }
+    
+    .movement-front-line h4, .movement-energy-line h4 {
+      font-size: 16px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .movement-line-slots {
+      grid-template-columns: repeat(1, 1fr);
+      gap: 8px;
+    }
+    
+    .movement-instructions, .selected-character-info {
+      padding: 15px;
+    }
+    
+    .movement-header h3 {
+      font-size: 16px;
+    }
+        
+    .movement-rules ul {
+      font-size: 11px;
+    }
+  }
+  .debug-area {
+    margin-top: 10px;
+    background: rgba(0,0,0,0.8);
+    color: #eee;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  

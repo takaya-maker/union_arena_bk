@@ -213,8 +213,8 @@ const CardList = () => {
     try {
       // ページング対応APIが利用可能な場合のみ実行
       if (typeof cardAPI.getAllCards === 'function') {
-        const nextPage = Math.floor(allCards.length / 100) + 1;
-        const response = await cardAPI.getAllCards(nextPage, 100);
+        const nextPage = Math.floor(allCards.length / 20) + 1;
+        const response = await cardAPI.getAllCards(nextPage, 20);
         
         if (response.success && response.data.length > 0) {
           setAllCards(prev => [...prev, ...response.data]);
