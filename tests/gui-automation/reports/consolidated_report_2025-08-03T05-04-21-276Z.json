@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-08-03T05:04:21.276Z",
+  "summary": {
+    "totalTests": 0,
+    "passedTests": 0,
+    "failedTests": 0,
+    "executionTime": 52225,
+    "passRate": 0
+  },
+  "testSuites": {
+    "comprehensive": {
+      "executed": true,
+      "duration": 7558,
+      "results": []
+    },
+    "battlefield": {
+      "executed": true,
+      "duration": 32168,
+      "results": []
+    },
+    "combat": {
+      "executed": true,
+      "duration": 12499,
+      "results": []
+    }
+  }
+}

@@ -6,6 +6,12 @@ const config = {
     IMG_BASE_URL: process.env.REACT_APP_IMG_BASE_URL || 'http://localhost:8000/static/images',
     EFFECT_IMG_BASE_URL: process.env.REACT_APP_EFFECT_IMG_BASE_URL || 'http://localhost:8000/static/effects',
   },
+  // テスト環境
+  test: {
+    API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000',
+    IMG_BASE_URL: process.env.REACT_APP_IMG_BASE_URL || 'http://localhost:8000/static/images',
+    EFFECT_IMG_BASE_URL: process.env.REACT_APP_EFFECT_IMG_BASE_URL || 'http://localhost:8000/static/effects',
+  },
   // 本番環境
   production: {
     API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://union-arena-bk.onrender.com',

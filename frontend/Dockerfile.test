@@ -1,0 +1,30 @@
+# React frontend test Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# テスト用のシステム依存関係
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Puppeteer用のChromium設定
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# package.jsonとpackage-lock.jsonをコピー
+COPY package*.json ./
+
+# 依存関係をインストール
+RUN npm ci
+
+# アプリケーションコードをコピー
+COPY . .
+
+# テスト実行
+CMD ["npm", "run", "test"]

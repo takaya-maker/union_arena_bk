@@ -7,6 +7,8 @@ import MovementPhaseUI from './MovementPhaseUI';
 import { TriggerEffectProcessor } from './TriggerSystemUI';
 import { AnimationManager, createPhaseChangeAnimation, createDamageAnimation } from './AnimationSystem';
 import UnionArenaGameManager from '../../utils/unionArenaGameSystems';
+import EffectProcessor from '../../utils/effectProcessor';
+import LLMService from '../../utils/llmService';
 import { 
   UNION_ARENA_PHASES, 
   PHASE_DISPLAY_NAMES,
@@ -24,6 +26,7 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
   const [gameManager] = useState(() => new UnionArenaGameManager());
   const [phaseManager] = useState(() => new UnionArenaPhaseManager());
   const [energyManager] = useState(() => new UnionArenaEnergyManager());
+  const [effectProcessor, setEffectProcessor] = useState(null);
   const [playerLifeManager] = useState(() => new UnionArenaLifeManager(GAME_CONSTANTS.INITIAL_LIFE));
   const [opponentLifeManager] = useState(() => new UnionArenaLifeManager(GAME_CONSTANTS.INITIAL_LIFE));
   const [victoryChecker] = useState(() => new VictoryConditionChecker(playerLifeManager, opponentLifeManager));
@@ -48,7 +51,9 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
     turnNumber: 1,
     gamePhase: UNION_ARENA_PHASES.START,
     playerEnergy: { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 },
-    opponentEnergy: { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 }
+    opponentEnergy: { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 },
+    playerGraveyard: [],
+    opponentGraveyard: []
   });
 
   const [selectedCard, setSelectedCard] = useState(null);
@@ -58,6 +63,21 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [aiThinking, setAiThinking] = useState(false);
   const [gameInitialized, setGameInitialized] = useState(false);
+  const [highlightedSlots, setHighlightedSlots] = useState([]);
+  const [showCardPreview, setShowCardPreview] = useState(false);
+  const [previewCard, setPreviewCard] = useState(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  
+  // ドラッグ&ドロップ状態
+  const [draggedCard, setDraggedCard] = useState(null);
+  const [draggedCardSource, setDraggedCardSource] = useState(null);
+  const [dragOverSlot, setDragOverSlot] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // 墓地表示状態
+  const [showPlayerGraveyard, setShowPlayerGraveyard] = useState(false);
+  const [showOpponentGraveyard, setShowOpponentGraveyard] = useState(false);
   
   // バトルシステム状態
   const [battleState, setBattleState] = useState({
@@ -295,6 +315,17 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
       console.log('BattleField: Initializing deck with:', selectedDeck);
       console.log('BattleField: Deck cards:', selectedDeck.cards);
       
+      // デッキ検証
+      if (!Array.isArray(selectedDeck.cards) || selectedDeck.cards.length === 0) {
+        console.error('BattleField: Invalid deck - no cards found');
+        addBattleLog('エラー: デッキにカードがありません');
+        return;
+      }
+      
+      if (selectedDeck.cards.length < 40) {
+        addBattleLog('警告: デッキが40枚未満です');
+      }
+      
       // 実際のデータ構造に合わせて処理
       // cards配列の各アイテムは個別のカードインスタンス
       const expandedDeck = selectedDeck.cards.map((card, index) => ({
@@ -307,18 +338,35 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
       console.log('BattleField: Expanded deck:', expandedDeck);
 
       const shuffledDeck = [...expandedDeck].sort(() => Math.random() - 0.5);
-      const initialHand = shuffledDeck.slice(0, 5);
-      const remainingDeck = shuffledDeck.slice(5);
+      const initialHand = shuffledDeck.slice(0, 7);
+      const remainingDeck = shuffledDeck.slice(7);
+      
+      // AI用デッキも実際のカードで構築
+      const aiDeck = [...expandedDeck].sort(() => Math.random() - 0.5);
+      const aiInitialHand = aiDeck.slice(0, 7).map((card, index) => ({
+        ...card,
+        uniqueId: `ai_${card.card_id}_${index}`,
+        isResting: false,
+        isSummoningSick: false
+      }));
+      const aiRemainingDeck = aiDeck.slice(7).map((card, index) => ({
+        ...card,
+        uniqueId: `ai_${card.card_id}_${index + 7}`,
+        isResting: false,
+        isSummoningSick: false
+      }));
       
       console.log('BattleField: Initial hand:', initialHand);
       console.log('BattleField: Remaining deck length:', remainingDeck.length);
+      console.log('BattleField: AI hand initialized:', aiInitialHand.length);
+      console.log('BattleField: AI deck initialized:', aiRemainingDeck.length);
       
       setGameState(prev => ({
         ...prev,
         playerHand: initialHand,
         playerDeck: remainingDeck,
-        opponentHand: new Array(5).fill(null),
-        opponentDeck: new Array(expandedDeck.length).fill(null)
+        opponentHand: aiInitialHand,
+        opponentDeck: aiRemainingDeck
       }));
 
       // 初期化完了フラグを設定
@@ -382,12 +430,37 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
       }).filter(Boolean)
     );
     
+    // エナジーが変更された場合の視覚的フィードバック
+    const prevPlayerEnergy = gameState.playerEnergy;
+    const energyChanged = JSON.stringify(prevPlayerEnergy) !== JSON.stringify(playerEnergy);
+    
     setGameState(prev => ({
       ...prev,
       playerEnergy,
-      opponentEnergy
+      opponentEnergy,
+      energyUpdateTimestamp: energyChanged ? Date.now() : prev.energyUpdateTimestamp
     }));
+    
+    // エナジーが変更された場合のログ出力
+    if (energyChanged) {
+      console.log('エナジー更新:', { 前: prevPlayerEnergy, 後: playerEnergy });
+      addBattleLog(`エナジー更新: ${Object.entries(playerEnergy).map(([color, amount]) => `${color}${amount}`).join(' ')}`);
+    }
   }, [gameState.playerEnergyLine, gameState.opponentEnergyLine, cardDetails, energyManager]);
+
+  // エナジー更新インジケーターの自動非表示
+  useEffect(() => {
+    if (gameState.energyUpdateTimestamp) {
+      const timer = setTimeout(() => {
+        setGameState(prev => ({
+          ...prev,
+          energyUpdateTimestamp: null
+        }));
+      }, 3000); // 3秒後に非表示
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.energyUpdateTimestamp]);
 
   // 勝利条件チェック
   useEffect(() => {
@@ -429,10 +502,15 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
 
   // AI対戦相手のターン処理
   useEffect(() => {
-    if (gameState.currentTurn === 'opponent' && !gameOver && (duelMode === 'computer' || duelMode === 'test')) {
-      handleAITurn();
+    if (gameState.currentTurn === 'opponent' && !gameOver && (duelMode === 'computer' || duelMode === 'test') && gameInitialized) {
+      // 少し遅延を入れてからAI処理を開始
+      const aiTurnTimeout = setTimeout(() => {
+        handleAITurn();
+      }, 800);
+      
+      return () => clearTimeout(aiTurnTimeout);
     }
-  }, [gameState.currentTurn, gameState.gamePhase, gameOver, duelMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameState.currentTurn, gameState.gamePhase, gameOver, duelMode, gameInitialized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // AI対戦相手のターン処理
   const handleAITurn = async () => {
@@ -444,11 +522,30 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
     try {
       const decision = await aiOpponent.makeDecision(gameState, gameState.gamePhase, cardDetails);
       
+      // 決定が有効かチェック
+      if (!decision || !decision.action) {
+        console.warn('AI returned invalid decision:', decision);
+        addBattleLog('対戦相手がパスしました');
+        setTimeout(() => {
+          nextPhase();
+        }, 1000);
+        return;
+      }
+      
       await executeAIDecision(decision);
       
     } catch (error) {
       console.error('AI decision error:', error);
-      addBattleLog('対戦相手のターンでエラーが発生しました');
+      addBattleLog('対戦相手のターンでエラーが発生しました。パスします。');
+      
+      // エラー時は自動的にフェーズを進める
+      setTimeout(() => {
+        if (gameState.gamePhase === UNION_ARENA_PHASES.END) {
+          endTurn();
+        } else {
+          nextPhase();
+        }
+      }, 1500);
     } finally {
       setAiThinking(false);
     }
@@ -495,14 +592,16 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
   // AIドローシミュレーション
   const simulateAIDraw = async () => {
     if (gameState.opponentDeck.length > 0) {
-      // AIの手札を1枚増やし、デッキを1枚減らす
+      // 実際のカードをドロー
+      const drawnCard = gameState.opponentDeck[0];
+      
       setGameState(prev => ({
         ...prev,
-        opponentHand: [...prev.opponentHand, { id: `ai_card_${Date.now()}` }],
+        opponentHand: [...prev.opponentHand, drawnCard],
         opponentDeck: prev.opponentDeck.slice(1)
       }));
       
-      addBattleLog('対戦相手がカードをドローしました');
+      addBattleLog(`対戦相手が${drawnCard.name}をドローしました`);
       soundManager.playSFX('draw');
       
       // 少し待ってから次のフェーズへ
@@ -516,33 +615,42 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
   const simulateAICardPlay = async (decision) => {
     const { card, line, position } = decision;
     
-    // 仮想的なAIカードを配置
-    const aiCard = {
-      ...card,
-      uniqueId: `ai_${card.card_id}_${Date.now()}`,
+    // 手札から実際のカードを使用
+    const cardToPlay = gameState.opponentHand.find(handCard => 
+      handCard.card_id === card.card_id
+    );
+    
+    if (!cardToPlay) {
+      console.error('AI tried to play a card not in hand:', card);
+      return;
+    }
+    
+    // カードに適切な状態を設定
+    const playedCard = {
+      ...cardToPlay,
       isResting: false,
-      isSummoningSick: true
+      isSummoningSick: line === 'front' // フロントラインに配置された場合のみサモニングシック
     };
     
     if (line === 'front') {
       const newFrontLine = [...gameState.opponentFrontLine];
-      newFrontLine[position] = aiCard;
+      newFrontLine[position] = playedCard;
       setGameState(prev => ({
         ...prev,
         opponentFrontLine: newFrontLine,
-        opponentHand: prev.opponentHand.slice(1) // 手札から1枚減らす
+        opponentHand: prev.opponentHand.filter(handCard => handCard.uniqueId !== cardToPlay.uniqueId)
       }));
     } else if (line === 'energy') {
       const newEnergyLine = [...gameState.opponentEnergyLine];
-      newEnergyLine[position] = aiCard;
+      newEnergyLine[position] = playedCard;
       setGameState(prev => ({
         ...prev,
         opponentEnergyLine: newEnergyLine,
-        opponentHand: prev.opponentHand.slice(1) // 手札から1枚減らす
+        opponentHand: prev.opponentHand.filter(handCard => handCard.uniqueId !== cardToPlay.uniqueId)
       }));
     }
     
-    addBattleLog(`対戦相手が${card.name}を${line === 'front' ? 'フロントライン' : 'エナジーライン'}に配置しました`);
+    addBattleLog(`対戦相手が${cardToPlay.name}を${line === 'front' ? 'フロントライン' : 'エナジーライン'}に配置しました`);
     soundManager.playSFX('card_play');
   };
 
@@ -557,20 +665,38 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
     setTimeout(async () => {
       // ダイレクトアタックとして処理（トリガーチェック付き）
       try {
-        const damageResult = gameManager.processDamage(
-          playerLifeManager, 
-          1, 
-          gameState.playerDeck
-        );
+        // ライフにダメージ処理
+        const cardsToLife = playerLifeManager.takeDamage(1, gameState.playerDeck);
+        
+        // デッキからライフエリアに移したカードを更新
+        setGameState(prev => ({
+          ...prev,
+          playerDeck: prev.playerDeck.slice(1) // ダメージ分デッキから減らす
+        }));
         
         addBattleLog('プレイヤーに1ダメージ');
         
-        if (damageResult && damageResult.triggersActivated && damageResult.triggersActivated.length > 0) {
-          addBattleLog(`${damageResult.triggersActivated.length}個のトリガーが発動！`);
+        // トリガーチェック（ライフエリアに移ったカードをチェック）
+        if (cardsToLife.length > 0) {
+          const triggeredCards = [];
+          cardsToLife.forEach(card => {
+            const cardDetail = cardDetails[card.card_id]?.data;
+            if (cardDetail?.能力?.includes('[Trigger]') || cardDetail?.能力?.includes('▼Final▼')) {
+              triggeredCards.push(card);
+            }
+          });
+          
+          if (triggeredCards.length > 0) {
+            addBattleLog(`${triggeredCards.length}個のトリガーが発動！`);
+            // トリガー効果の処理（簡略化）
+            triggeredCards.forEach(triggerCard => {
+              addBattleLog(`${triggerCard.name}のトリガー効果発動`);
+            });
+          }
         }
         
         // ダメージアニメーション
-        const playerLifeElement = document.querySelector('.player-life-area');
+        const playerLifeElement = document.querySelector('.player-life-fill');
         if (playerLifeElement) {
           animationManager.queueAnimation(createDamageAnimation(1, playerLifeElement, '#ff4757'));
         }
@@ -648,6 +774,32 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
     setBattleLog(prev => [...prev, { id: Date.now(), message, timestamp: new Date() }]);
   };
 
+  // EffectProcessorの初期化
+  useEffect(() => {
+    if (!effectProcessor) {
+      setEffectProcessor(new EffectProcessor(
+        {
+          getGameState: () => gameState,
+          updateGameState: (updates) => setGameState(prev => ({ ...prev, ...updates }))
+        },
+        addBattleLog
+      ));
+    }
+  }, [effectProcessor]);
+
+  // 墓地関連の関数
+  const addToGraveyard = (card, player) => {
+    setGameState(prev => ({
+      ...prev,
+      [player === 'player' ? 'playerGraveyard' : 'opponentGraveyard']: [
+        ...prev[player === 'player' ? 'playerGraveyard' : 'opponentGraveyard'],
+        { ...card, graveyardTimestamp: Date.now() }
+      ]
+    }));
+    
+    addBattleLog(`${card.name}が墓地に送られました`);
+  };
+
   // TriggerEffectProcessor の初期化
   useEffect(() => {
     if (!triggerProcessor) {
@@ -655,7 +807,7 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
         gameManager, gameState, setGameState, addBattleLog, soundManager
       ));
     }
-  }, []); // 一度だけ初期化
+  }, [gameManager, gameState, soundManager]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // カードを手札からプレイ
   const playCardFromHand = (card, lineType, position) => {
@@ -685,6 +837,13 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
       }));
       
       addBattleLog(`${card.name}をフロントライン${position + 1}に配置しました`);
+      
+      // 登場時効果の処理
+      setTimeout(() => {
+        if (effectProcessor) {
+          effectProcessor.processOnPlayEffects(card, cardDetails, lineType, position, 'player');
+        }
+      }, 100);
     } else if (lineType === 'energy') {
       if (gameState.playerEnergyLine[position] !== null) {
         addBattleLog('そのスロットには既にカードが配置されています');
@@ -702,6 +861,13 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
       }));
       
       addBattleLog(`${card.name}をエナジーライン${position + 1}に配置しました`);
+      
+      // 登場時効果の処理（エナジーラインでも効果が発動する場合）
+      setTimeout(() => {
+        if (effectProcessor) {
+          effectProcessor.processOnPlayEffects(card, cardDetails, lineType, position, 'player');
+        }
+      }, 100);
     }
     
     soundManager.playSFX('success');
@@ -834,11 +1000,26 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
       // ムーブメントフェーズでもカード選択を許可（詳細表示用）
       if (phaseManager.canPerformAction('playCard')) {
         setSelectedCard(card);
+        setPreviewCard(card);
+        setShowCardPreview(true);
+        
+        // 配置可能なスロットをハイライト
+        const availableSlots = [];
+        gameState.playerFrontLine.forEach((slot, index) => {
+          if (slot === null) availableSlots.push({ type: 'front', index });
+        });
+        gameState.playerEnergyLine.forEach((slot, index) => {
+          if (slot === null) availableSlots.push({ type: 'energy', index });
+        });
+        setHighlightedSlots(availableSlots);
+        
         addBattleLog(`${card.name}を選択しました。配置先を選択してください。`);
         soundManager.playSFX('success');
       } else {
         // ムーブメントフェーズではカード詳細表示のみ
         setSelectedCard(card);
+        setPreviewCard(card);
+        setShowCardPreview(true);
         addBattleLog(`${card.name}の詳細を表示中`);
         soundManager.playSFX('success');
       }
@@ -851,10 +1032,282 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
   const handleLineSlotClick = (lineType, position) => {
     if (selectedCard && phaseManager.canPerformAction('playCard')) {
       playCardFromHand(selectedCard, lineType, position);
+      // リセット処理
+      setSelectedCard(null);
+      setHighlightedSlots([]);
+      setShowCardPreview(false);
+      setPreviewCard(null);
     } else if (selectedCard && !phaseManager.canPerformAction('playCard')) {
       addBattleLog(`${PHASE_DISPLAY_NAMES[gameState.gamePhase]}ではカードを配置できません`);
       soundManager.playSFX('warning');
     }
+  };
+
+  // カード選択をキャンセル
+  const handleCancelSelection = () => {
+    setSelectedCard(null);
+    setHighlightedSlots([]);
+    setShowCardPreview(false);
+    setPreviewCard(null);
+    addBattleLog('カード選択をキャンセルしました');
+  };
+
+  // スロットがハイライト対象かチェック
+  const isSlotHighlighted = (type, index) => {
+    return highlightedSlots.some(slot => slot.type === type && slot.index === index);
+  };
+
+  // ドラッグ&ドロップイベントハンドラー
+  const handleDragStart = (e, card, source) => {
+    if (gameState.currentTurn !== 'player' || gameOver) {
+      e.preventDefault();
+      return;
+    }
+
+    setDraggedCard(card);
+    setDraggedCardSource(source);
+    setIsDragging(true);
+    
+    // ドラッグデータを設定
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      cardId: card.uniqueId,
+      source: source
+    }));
+    e.dataTransfer.effectAllowed = 'move';
+
+    // ドラッグ可能なスロットをハイライト
+    const availableSlots = [];
+    
+    if (source.type === 'hand' && phaseManager.canPerformAction('playCard')) {
+      // 手札からの配置
+      gameState.playerFrontLine.forEach((slot, index) => {
+        if (slot === null) availableSlots.push({ type: 'front', index });
+      });
+      gameState.playerEnergyLine.forEach((slot, index) => {
+        if (slot === null) availableSlots.push({ type: 'energy', index });
+      });
+    } else if (source.type === 'field' && gameState.gamePhase === UNION_ARENA_PHASES.MOVEMENT) {
+      // フィールドカードの移動
+      if (source.line === 'front') {
+        // フロントラインからエナジーラインへの移動（Step能力チェック）
+        const cardDetail = cardDetails[card.card_id]?.data;
+        if (cardDetail?.能力?.includes('▼Step▼')) {
+          gameState.playerEnergyLine.forEach((slot, index) => {
+            if (slot === null) availableSlots.push({ type: 'energy', index });
+          });
+        }
+        // 同じライン内での移動
+        gameState.playerFrontLine.forEach((slot, index) => {
+          if (slot === null && index !== source.position) {
+            availableSlots.push({ type: 'front', index });
+          }
+        });
+      } else if (source.line === 'energy') {
+        // エナジーラインからフロントラインへの移動
+        gameState.playerFrontLine.forEach((slot, index) => {
+          if (slot === null) availableSlots.push({ type: 'front', index });
+        });
+        // 同じライン内での移動
+        gameState.playerEnergyLine.forEach((slot, index) => {
+          if (slot === null && index !== source.position) {
+            availableSlots.push({ type: 'energy', index });
+          }
+        });
+      }
+    }
+    
+    setHighlightedSlots(availableSlots);
+    
+    // ドラッグ画像をカスタマイズ
+    setTimeout(() => {
+      if (e.target) {
+        e.target.classList.add('dragging');
+      }
+    }, 0);
+  };
+
+  const handleDragOver = (e, lineType, position) => {
+    e.preventDefault();
+    
+    if (!isDragging || !draggedCard) return;
+    
+    // ドロップ可能かチェック
+    const canDrop = isSlotHighlighted(lineType, position);
+    
+    e.dataTransfer.dropEffect = canDrop ? 'move' : 'none';
+    
+    // ドラッグオーバー状態を設定
+    setDragOverSlot({ lineType, position, canDrop });
+  };
+
+  const handleDragLeave = (e) => {
+    // 子要素への移動は無視
+    if (e.currentTarget.contains(e.relatedTarget)) {
+      return;
+    }
+    setDragOverSlot(null);
+  };
+
+  const handleDrop = (e, lineType, position) => {
+    e.preventDefault();
+    
+    if (!draggedCard || !draggedCardSource) {
+      return;
+    }
+    
+    // ドロップ可能かチェック
+    const canDrop = isSlotHighlighted(lineType, position);
+    if (!canDrop) {
+      addBattleLog('そこには配置できません');
+      soundManager.playSFX('error');
+      return;
+    }
+
+    try {
+      if (draggedCardSource.type === 'hand') {
+        // 手札からの配置
+        playCardFromHand(draggedCard, lineType, position);
+        addBattleLog(`${draggedCard.name}をドラッグ&ドロップで配置しました`);
+      } else if (draggedCardSource.type === 'field') {
+        // フィールドカードの移動
+        handleMoveCharacter(
+          draggedCardSource.line,
+          draggedCardSource.position,
+          lineType,
+          position
+        );
+        addBattleLog(`${draggedCard.name}をドラッグ&ドロップで移動しました`);
+      }
+      
+      soundManager.playSFX('success');
+    } catch (error) {
+      addBattleLog(error.message);
+      soundManager.playSFX('error');
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    // ドラッグ状態をリセット
+    setDraggedCard(null);
+    setDraggedCardSource(null);
+    setDragOverSlot(null);
+    setIsDragging(false);
+    setHighlightedSlots([]);
+    
+    // ドラッグクラスを削除
+    if (e.target) {
+      e.target.classList.remove('dragging');
+    }
+  };
+
+  // ドラッグ可能かチェック
+  const isDragEnabled = (card, source) => {
+    if (gameState.currentTurn !== 'player' || gameOver) return false;
+    
+    if (source.type === 'hand') {
+      return phaseManager.canPerformAction('playCard');
+    } else if (source.type === 'field') {
+      return gameState.gamePhase === UNION_ARENA_PHASES.MOVEMENT;
+    }
+    
+    return false;
+  };
+
+  // ドラッグオーバー時のスロットクラス名を取得
+  const getDragOverClass = (lineType, position) => {
+    if (!dragOverSlot || dragOverSlot.lineType !== lineType || dragOverSlot.position !== position) {
+      return '';
+    }
+    
+    return dragOverSlot.canDrop ? 'drag-valid' : 'drag-invalid';
+  };
+
+  // [Activate: Main]効果の使用
+  const activateMainEffect = (card, lineType, position) => {
+    if (gameState.currentTurn !== 'player' || !phaseManager.canPerformAction('activateMain')) {
+      addBattleLog('メインフェーズでないと効果を使用できません');
+      soundManager.playSFX('error');
+      return;
+    }
+
+    const cardDetail = cardDetails[card.card_id]?.data;
+    if (!cardDetail?.能力?.includes('[Activate: Main]')) {
+      addBattleLog('このカードにはActivate効果がありません');
+      soundManager.playSFX('error');
+      return;
+    }
+
+    const success = effectProcessor ? effectProcessor.processActivateEffect(card, cardDetail, 'player') : false;
+    if (success) {
+      // カードをレスト状態にする（効果使用済み）
+      if (lineType === 'front') {
+        const newFrontLine = [...gameState.playerFrontLine];
+        newFrontLine[position] = { ...card, isResting: true, effectUsed: true };
+        setGameState(prev => ({ ...prev, playerFrontLine: newFrontLine }));
+      } else if (lineType === 'energy') {
+        const newEnergyLine = [...gameState.playerEnergyLine];
+        newEnergyLine[position] = { ...card, isResting: true, effectUsed: true };
+        setGameState(prev => ({ ...prev, playerEnergyLine: newEnergyLine }));
+      }
+      
+      soundManager.playSFX('effectActivate');
+    } else {
+      soundManager.playSFX('error');
+    }
+  };
+
+  // チュートリアルシステム
+  const tutorialSteps = [
+    {
+      title: "Union Arenaへようこそ！",
+      content: "このチュートリアルでは基本的な操作方法を説明します。",
+      target: null,
+      position: "center"
+    },
+    {
+      title: "ゲーム情報",
+      content: "ここではターン数、現在のフェーズ、APを確認できます。",
+      target: ".enhanced-game-header",
+      position: "bottom"
+    },
+    {
+      title: "手札",
+      content: "手札のカードをクリックして選択し、フィールドに配置できます。",
+      target: ".hand-section",
+      position: "top"
+    },
+    {
+      title: "エナジーライン",
+      content: "エナジーを生成するキャラクターを配置します。",
+      target: ".player-energy-line",
+      position: "top"
+    },
+    {
+      title: "フロントライン",
+      content: "戦闘を行うキャラクターを配置します。",
+      target: ".player-front-line",
+      position: "top"
+    },
+    {
+      title: "フェーズ進行",
+      content: "「次へ」ボタンでフェーズを進め、「終了」でターンを終えます。",
+      target: ".quick-actions",
+      position: "bottom"
+    }
+  ];
+
+  const nextTutorialStep = () => {
+    if (tutorialStep < tutorialSteps.length - 1) {
+      setTutorialStep(tutorialStep + 1);
+    } else {
+      setShowTutorial(false);
+      setTutorialStep(0);
+    }
+  };
+
+  const skipTutorial = () => {
+    setShowTutorial(false);
+    setTutorialStep(0);
   };
 
   const getCardImageUrl = (cardId) => {
@@ -862,7 +1315,8 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
   };
 
   const getEnergyImageUrl = (energyType) => {
-    const energyNameMap = {
+    // 英語のエナジータイプを日本語に変換
+    const energyTypeMap = {
       red: '赤',
       blue: '青',
       green: '緑',
@@ -870,8 +1324,20 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
       purple: '紫'
     };
     
-    const japaneseName = energyNameMap[energyType] || energyType;
-    return `${process.env.PUBLIC_URL}/assets/images/energy/${japaneseName}.png`;
+    const japaneseType = energyTypeMap[energyType] || energyType;
+    return `/assets/images/energy/${japaneseType}.png`;
+  };
+
+  // エナジーカラーの取得
+  const getEnergyColor = (energyType) => {
+    const colorMap = {
+      red: '#e53e3e',
+      blue: '#3182ce',
+      green: '#38a169',
+      yellow: '#d69e2e',
+      purple: '#805ad5'
+    };
+    return colorMap[energyType] || '#ffffff';
   };
 
   if (!selectedDeck) {
@@ -910,543 +1376,517 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
   }
 
   return (
-    <div className="battle-field-container" style={{ 
-      minHeight: '100vh', 
-      backgroundColor: '#1a1a2e', 
-      color: 'white',
-      padding: '20px'
-    }}>
-      {/* ゲーム情報ヘッダー */}
-      <div className="game-header" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '10px 20px',
-        backgroundColor: '#16213e',
-        borderRadius: '10px',
-        marginBottom: '20px'
-      }}>
-        <div className="turn-info" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          <span className="turn-label" style={{ fontSize: '18px', fontWeight: 'bold' }}>ターン {gameState.turnNumber}</span>
-          <span className={`current-player ${gameState.currentTurn}`} style={{
-            padding: '5px 15px',
-            borderRadius: '20px',
-            backgroundColor: gameState.currentTurn === 'player' ? '#4ecdc4' : '#e74c3c',
-            color: 'white'
-          }}>
-            {gameState.currentTurn === 'player' ? 'あなたのターン' : '相手のターン'}
-          </span>
-          <span className="phase-badge" style={{
-            padding: '5px 15px',
-            borderRadius: '20px',
-            backgroundColor: '#f39c12',
-            color: 'white'
-          }}>
-            {PHASE_DISPLAY_NAMES[gameState.gamePhase]}
-          </span>
-          <span className="ap-display" style={{
-            padding: '5px 15px',
-            borderRadius: '20px',
-            backgroundColor: '#9b59b6',
-            color: 'white'
-          }}>
-            AP: {apState.current}/{apState.max}
-          </span>
-          {aiThinking && (
-            <span className="ai-thinking" style={{ color: '#f39c12' }}>
-              <span className="thinking-indicator">🤔</span>
-              AI思考中...
-            </span>
-          )}
+    <div className="battle-field-container">
+      {/* 改善されたゲーム情報ヘッダー */}
+      <div className="enhanced-game-header">
+        <div className="header-left">
+          <div className="turn-counter">
+            <span className="turn-number">ターン {gameState.turnNumber}</span>
+          </div>
+          <div className={`player-indicator ${gameState.currentTurn}`}>
+            <div className="indicator-icon">
+              {gameState.currentTurn === 'player' ? '👤' : '🤖'}
+            </div>
+            <span>{gameState.currentTurn === 'player' ? 'あなたのターン' : '相手のターン'}</span>
+          </div>
         </div>
-        <div className="game-controls" style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            onClick={drawCard} 
-            className="action-button draw-button"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '5px',
-              border: 'none',
-              backgroundColor: '#27ae60',
-              color: 'white',
-              cursor: phaseManager.canPerformAction('draw') && gameState.playerDeck.length > 0 && gameState.currentTurn === 'player' ? 'pointer' : 'not-allowed',
-              opacity: phaseManager.canPerformAction('draw') && gameState.playerDeck.length > 0 && gameState.currentTurn === 'player' ? 1 : 0.5
-            }}
-            disabled={!phaseManager.canPerformAction('draw') || gameState.playerDeck.length === 0 || gameState.currentTurn !== 'player'}
-          >
-            ドロー ({gameState.playerDeck.length})
-          </button>
-          <button 
-            onClick={nextPhase} 
-            className="action-button next-phase-button"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '5px',
-              border: 'none',
-              backgroundColor: '#3498db',
-              color: 'white',
-              cursor: gameState.currentTurn === 'player' && !aiThinking ? 'pointer' : 'not-allowed',
-              opacity: gameState.currentTurn === 'player' && !aiThinking ? 1 : 0.5
-            }}
-            disabled={gameState.currentTurn !== 'player' || aiThinking}
-          >
-            次のフェーズ
-          </button>
-          <button 
-            onClick={endTurn} 
-            className="action-button end-turn-button"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '5px',
-              border: 'none',
-              backgroundColor: '#e67e22',
-              color: 'white',
-              cursor: gameState.gamePhase === UNION_ARENA_PHASES.END && gameState.currentTurn === 'player' && !aiThinking ? 'pointer' : 'not-allowed',
-              opacity: gameState.gamePhase === UNION_ARENA_PHASES.END && gameState.currentTurn === 'player' && !aiThinking ? 1 : 0.5
-            }}
-            disabled={gameState.gamePhase !== UNION_ARENA_PHASES.END || gameState.currentTurn !== 'player' || aiThinking}
-          >
-            ターン終了
-          </button>
-          <button onClick={onBackToMenu} className="action-button menu-button" style={{
-            padding: '10px 20px',
-            borderRadius: '5px',
-            border: 'none',
-            backgroundColor: '#95a5a6',
-            color: 'white',
-            cursor: 'pointer'
-          }}>
-            メニュー
-          </button>
+        
+        <div className="header-center">
+          <div className="phase-display">
+            <div className="phase-icon">
+              {gameState.gamePhase === UNION_ARENA_PHASES.START && '🎯'}
+              {gameState.gamePhase === UNION_ARENA_PHASES.MOVEMENT && '🔄'}
+              {gameState.gamePhase === UNION_ARENA_PHASES.MAIN && '⚔️'}
+              {gameState.gamePhase === UNION_ARENA_PHASES.END && '🏁'}
+            </div>
+            <span className="phase-name">{PHASE_DISPLAY_NAMES[gameState.gamePhase]}</span>
+          </div>
+          <div className="ap-tracker">
+            <span className="ap-label">AP</span>
+            <div className="ap-orbs">
+              {[...Array(apState.max)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className={`ap-orb ${i < apState.current ? 'active' : 'used'}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="header-right">
+          {aiThinking && (
+            <div className="ai-thinking-indicator">
+              <div className="thinking-spinner"></div>
+              <span>AI思考中...</span>
+            </div>
+          )}
+          <div className="quick-actions">
+            <button 
+              onClick={drawCard} 
+              className="quick-action-btn draw-btn"
+              disabled={!phaseManager.canPerformAction('draw') || gameState.playerDeck.length === 0 || gameState.currentTurn !== 'player'}
+              title={`ドロー (残り${gameState.playerDeck.length}枚)`}
+            >
+              <span className="btn-icon">🃏</span>
+              <span className="btn-text">ドロー</span>
+            </button>
+            <button 
+              onClick={nextPhase} 
+              className="quick-action-btn phase-btn"
+              disabled={gameState.currentTurn !== 'player' || aiThinking}
+              title="次のフェーズへ"
+            >
+              <span className="btn-icon">▶️</span>
+              <span className="btn-text">次へ</span>
+            </button>
+            <button 
+              onClick={endTurn} 
+              className="quick-action-btn end-btn"
+              disabled={gameState.gamePhase !== UNION_ARENA_PHASES.END || gameState.currentTurn !== 'player' || aiThinking}
+              title="ターン終了"
+            >
+              <span className="btn-icon">⏹️</span>
+              <span className="btn-text">終了</span>
+            </button>
+            {selectedCard && (
+              <button 
+                onClick={handleCancelSelection} 
+                className="quick-action-btn cancel-btn"
+                title="選択キャンセル"
+              >
+                <span className="btn-icon">❌</span>
+                <span className="btn-text">キャンセル</span>
+              </button>
+            )}
+            <button 
+              onClick={() => setShowTutorial(true)} 
+              className="quick-action-btn help-btn"
+              title="ヘルプ・チュートリアル"
+            >
+              <span className="btn-icon">❓</span>
+              <span className="btn-text">ヘルプ</span>
+            </button>
+            <button 
+              onClick={onBackToMenu} 
+              className="quick-action-btn menu-btn"
+              title="メニューに戻る"
+            >
+              <span className="btn-icon">🏠</span>
+              <span className="btn-text">メニュー</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ライフ表示 */}
-      <div className="life-display" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginBottom: '20px'
-      }}>
-        <div className="player-life" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="life-label" style={{ fontSize: '16px', fontWeight: 'bold' }}>プレイヤー</span>
-          <div className="life-bar" style={{
-            width: '200px',
-            height: '30px',
-            backgroundColor: '#34495e',
-            borderRadius: '15px',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
+      <div className="life-display">
+        <div className="player-life">
+          <span className="life-label">プレイヤー</span>
+          <div className="life-bar">
             <div 
               className="life-fill player-life-fill"
-              style={{ 
-                width: `${playerLifeManager.getLifePercentage()}%`,
-                height: '100%',
-                backgroundColor: '#27ae60',
-                transition: 'width 0.3s ease'
-              }}
+              style={{ width: `${playerLifeManager.getLifePercentage()}%` }}
             ></div>
-            <span className="life-text" style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>{playerLifeManager.getCurrentLife()}</span>
+            <span className="life-text">{playerLifeManager.getCurrentLife()}</span>
           </div>
         </div>
-        <div className="opponent-life" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="life-label" style={{ fontSize: '16px', fontWeight: 'bold' }}>対戦相手</span>
-          <div className="life-bar" style={{
-            width: '200px',
-            height: '30px',
-            backgroundColor: '#34495e',
-            borderRadius: '15px',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
+        <div className="opponent-life">
+          <span className="life-label">対戦相手</span>
+          <div className="life-bar">
             <div 
               className="life-fill opponent-life-fill"
-              style={{ 
-                width: `${opponentLifeManager.getLifePercentage()}%`,
-                height: '100%',
-                backgroundColor: '#e74c3c',
-                transition: 'width 0.3s ease'
-              }}
+              style={{ width: `${opponentLifeManager.getLifePercentage()}%` }}
             ></div>
-            <span className="life-text" style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>{opponentLifeManager.getCurrentLife()}</span>
+            <span className="life-text">{opponentLifeManager.getCurrentLife()}</span>
           </div>
         </div>
       </div>
 
       {/* メインゲームエリア */}
-      <div className="main-game-area" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        backgroundColor: '#0f3460',
-        borderRadius: '15px',
-        padding: '20px',
-        marginBottom: '20px'
-      }}>
+      <div className="main-game-area">
         {/* 相手エリア */}
-        <div className="opponent-section" style={{
-          backgroundColor: '#e74c3c',
-          borderRadius: '10px',
-          padding: '15px'
-        }}>
-          <div className="opponent-info" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: '15px',
-            color: 'white'
-          }}>
+        <div className="opponent-section">
+          <div className="opponent-info">
             <span>手札: {gameState.opponentHand.length}枚</span>
             <span>デッキ: {gameState.opponentDeck.length}枚</span>
           </div>
+          
+          {/* 相手のエナジーライン */}
+          <div className="field-line opponent-energy-line">
+            <h4>相手 エナジーライン</h4>
+            <div className="line-slots">
+              {gameState.opponentEnergyLine.map((card, index) => (
+                <div key={index} className="line-slot opponent-slot">
+                  {card ? (
+                    <img 
+                      src={getCardImageUrl(card.card_id)}
+                      alt={card.name}
+                      className="field-card opponent-card"
+                    />
+                  ) : (
+                    <div className="empty-slot opponent-empty">
+                      <span>空</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* 相手のフロントライン */}
-          <div className="field-line opponent-front-line" style={{ marginBottom: '15px' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>相手 フロントライン</h4>
-            <div className="line-slots" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '10px'
-            }}>
-              {gameState.opponentFrontLine.map((card, index) => (
-                <div key={index} className="line-slot opponent-slot" style={{
-                  width: '120px',
-                  height: '160px',
-                  border: '2px dashed #ffffff',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: card ? 'transparent' : 'rgba(255,255,255,0.1)'
-                }}>
-                  {card ? (
-                    <img 
-                      src={getCardImageUrl(card.card_id)}
-                      alt={card.name}
-                      className="field-card opponent-card"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '6px'
-                      }}
-                    />
-                  ) : (
-                    <div className="empty-slot opponent-empty" style={{
-                      color: 'white',
-                      fontSize: '12px',
-                      textAlign: 'center'
-                    }}>
-                      <span>空</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+          <div className="field-line opponent-front-line">
+            <h4>相手 フロントライン</h4>
+            <div className="line-slots">
+                              {gameState.opponentFrontLine.map((card, index) => (
+                  <div key={index} className="line-slot opponent-slot">
+                    {card ? (
+                      <img 
+                        src={getCardImageUrl(card.card_id)}
+                        alt={card.name}
+                        className="field-card opponent-card"
+                      />
+                    ) : (
+                      <div className="empty-slot opponent-empty">
+                        <span>空</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* 相手のエナジーライン */}
-          <div className="field-line opponent-energy-line" style={{ marginBottom: '15px' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>相手 エナジーライン</h4>
-            <div className="line-slots" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '10px'
-            }}>
-              {gameState.opponentEnergyLine.map((card, index) => (
-                <div key={index} className="line-slot opponent-slot" style={{
-                  width: '120px',
-                  height: '160px',
-                  border: '2px dashed #ffffff',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: card ? 'transparent' : 'rgba(255,255,255,0.1)'
-                }}>
-                  {card ? (
-                    <img 
-                      src={getCardImageUrl(card.card_id)}
-                      alt={card.name}
-                      className="field-card opponent-card"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '6px'
-                      }}
-                    />
-                  ) : (
-                    <div className="empty-slot opponent-empty" style={{
-                      color: 'white',
-                      fontSize: '12px',
-                      textAlign: 'center'
-                    }}>
-                      <span>空</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+
 
           {/* 相手のエナジー表示 */}
           <div className="energy-display opponent-energy-display">
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>相手エナジー</h4>
-            <div className="energy-row" style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap'
-            }}>
+            <h4>相手エナジー</h4>
+            <div className="energy-row">
               {Object.entries(gameState.opponentEnergy).map(([color, amount]) => (
-                <div key={color} className="energy-item" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  padding: '5px 10px',
-                  borderRadius: '15px'
-                }}>
-                  <img src={getEnergyImageUrl(color)} alt={`${color}エナジー`} style={{
-                    width: '20px',
-                    height: '20px'
-                  }} />
-                  <span style={{ color: 'white', fontWeight: 'bold' }}>{amount}</span>
+                <div key={color} className="energy-item">
+                  <img src={getEnergyImageUrl(color)} alt={`${color}エナジー`} />
+                  <span>{amount}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* 中央エリア - バトルログ */}
-        <div className="center-section" style={{
-          backgroundColor: '#34495e',
-          borderRadius: '10px',
-          padding: '15px',
-          minHeight: '200px'
-        }}>
+        {/* 中央エリア - バトルログと墓地 */}
+        <div className="center-section">
+          {/* 相手の墓地 */}
+          <div className="graveyard-section">
+            <h4>相手墓地</h4>
+            <div 
+              className="graveyard-pile opponent-graveyard"
+              onClick={() => setShowOpponentGraveyard(true)}
+            >
+                              {gameState.opponentGraveyard.length > 0 ? (
+                  <>
+                    <img 
+                      src={getCardImageUrl(gameState.opponentGraveyard[gameState.opponentGraveyard.length - 1].card_id)}
+                      alt="墓地トップ"
+                      className="graveyard-card-image"
+                    />
+                    <div className="graveyard-count opponent-count">
+                      {gameState.opponentGraveyard.length}
+                    </div>
+                  </>
+                ) : (
+                  <span className="empty-graveyard">空</span>
+                )}
+            </div>
+          </div>
+
+          {/* バトルログ */}
           <div className="battle-log">
-            <h3 style={{ margin: '0 0 15px 0', color: 'white' }}>バトルログ</h3>
-            <div className="log-messages" style={{
-              maxHeight: '150px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '5px'
-            }}>
+            <h3>バトルログ</h3>
+            <div className="log-messages">
               {battleLog.slice(-8).map(log => (
-                <div key={log.id} className="log-message" style={{
-                  padding: '8px 12px',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  borderRadius: '5px',
-                  color: 'white',
-                  fontSize: '14px'
-                }}>
+                <div key={log.id} className="log-message">
                   {log.message}
                 </div>
               ))}
             </div>
           </div>
+
+          {/* プレイヤーの墓地 */}
+          <div className="graveyard-section">
+            <h4>あなたの墓地</h4>
+            <div 
+              className="graveyard-pile player-graveyard"
+              onClick={() => setShowPlayerGraveyard(true)}
+            >
+              {gameState.playerGraveyard.length > 0 ? (
+                <>
+                  <img 
+                    src={getCardImageUrl(gameState.playerGraveyard[gameState.playerGraveyard.length - 1].card_id)}
+                    alt="墓地トップ"
+                    className="graveyard-card-image"
+                  />
+                  <div className="graveyard-count player-count">
+                    {gameState.playerGraveyard.length}
+                  </div>
+                </>
+              ) : (
+                <span className="empty-graveyard">空</span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* プレイヤーエリア */}
-        <div className="player-section" style={{
-          backgroundColor: '#27ae60',
-          borderRadius: '10px',
-          padding: '15px'
-        }}>
+        <div className="player-section">
           {/* プレイヤーのエナジー表示 */}
-          <div className="energy-display player-energy-display" style={{ marginBottom: '15px' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>あなたのエナジー</h4>
-            <div className="energy-row" style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap'
-            }}>
+          <div className="energy-display player-energy-display">
+            <h4>あなたのエナジー</h4>
+            <div className="energy-row">
               {Object.entries(gameState.playerEnergy).map(([color, amount]) => (
-                <div key={color} className="energy-item" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  padding: '5px 10px',
-                  borderRadius: '15px'
-                }}>
-                  <img src={getEnergyImageUrl(color)} alt={`${color}エナジー`} style={{
-                    width: '20px',
-                    height: '20px'
-                  }} />
-                  <span style={{ color: 'white', fontWeight: 'bold' }}>{amount}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* プレイヤーのエナジーライン */}
-          <div className="field-line player-energy-line" style={{ marginBottom: '15px' }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>あなたの エナジーライン</h4>
-            <div className="line-slots" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '10px'
-            }}>
-              {gameState.playerEnergyLine.map((card, index) => (
                 <div 
-                  key={index} 
-                  className={`line-slot player-slot ${selectedCard ? 'can-place' : ''}`}
-                  onClick={() => handleLineSlotClick('energy', index)}
+                  key={color} 
+                  className={`energy-item ${gameState.energyUpdateTimestamp ? 'energy-updated' : ''}`}
                   style={{
-                    width: '120px',
-                    height: '160px',
-                    border: `2px dashed ${selectedCard && phaseManager.canPerformAction('playCard') ? '#f39c12' : selectedCard ? '#95a5a6' : '#ffffff'}`,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: card ? 'transparent' : selectedCard && phaseManager.canPerformAction('playCard') ? 'rgba(243,156,18,0.2)' : selectedCard ? 'rgba(149,165,166,0.2)' : 'rgba(255,255,255,0.1)',
-                    cursor: selectedCard && !card && phaseManager.canPerformAction('playCard') ? 'pointer' : 'default',
-                    transition: 'all 0.3s ease'
+                    animationDelay: `${Object.keys(gameState.playerEnergy).indexOf(color) * 0.1}s`
                   }}
                 >
-                  {card ? (
-                    <img 
-                      src={getCardImageUrl(card.card_id)}
-                      alt={card.name}
-                      className="field-card player-card"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '6px'
-                      }}
-                    />
-                  ) : (
-                    <div className="empty-slot player-empty" style={{
-                      color: 'white',
-                      fontSize: '12px',
-                      textAlign: 'center'
-                    }}>
-                      {selectedCard && phaseManager.canPerformAction('playCard') ? <span>配置</span> : selectedCard ? <span>配置不可</span> : <span>空</span>}
-                    </div>
+                  <img src={getEnergyImageUrl(color)} alt={`${color}エナジー`} />
+                  <span className="energy-amount">{amount}</span>
+                  {amount > 0 && (
+                    <div className="energy-glow" style={{ '--energy-color': getEnergyColor(color) }}></div>
                   )}
                 </div>
               ))}
             </div>
+            {gameState.energyUpdateTimestamp && (
+              <div className="energy-update-indicator">
+                <span>✨ エナジー更新済み</span>
+              </div>
+            )}
           </div>
 
           {/* プレイヤーのフロントライン */}
           <div className="field-line player-front-line">
-            <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>あなたの フロントライン</h4>
-            <div className="line-slots" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '10px'
-            }}>
-              {gameState.playerFrontLine.map((card, index) => (
-                <div 
-                  key={index} 
-                  className={`line-slot player-slot ${selectedCard ? 'can-place' : ''}`}
-                  onClick={() => handleLineSlotClick('front', index)}
-                  style={{
-                    width: '120px',
-                    height: '160px',
-                    border: `2px dashed ${selectedCard && phaseManager.canPerformAction('playCard') ? '#f39c12' : selectedCard ? '#95a5a6' : '#ffffff'}`,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: card ? 'transparent' : selectedCard && phaseManager.canPerformAction('playCard') ? 'rgba(243,156,18,0.2)' : selectedCard ? 'rgba(149,165,166,0.2)' : 'rgba(255,255,255,0.1)',
-                    cursor: selectedCard && !card && phaseManager.canPerformAction('playCard') ? 'pointer' : 'default',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
+            <h4>あなたの フロントライン</h4>
+            <div className="line-slots">
+              {gameState.playerFrontLine.map((card, index) => {
+                const dragOverClass = getDragOverClass('front', index);
+                const fieldDragEnabled = card && isDragEnabled(card, { 
+                  type: 'field', 
+                  line: 'front', 
+                  position: index 
+                });
+                
+                return (
+                  <div 
+                    key={index} 
+                    className={`line-slot player-slot front-slot ${
+                      selectedCard ? 'can-place' : ''
+                    } ${
+                      isSlotHighlighted('front', index) ? 'highlighted' : ''
+                    } ${dragOverClass}`}
+                    onClick={() => handleLineSlotClick('front', index)}
+                    onDragOver={(e) => handleDragOver(e, 'front', index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 'front', index)}
+                    onMouseEnter={() => {
+                      if (card) {
+                        setHoveredCard(card);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (card) {
+                        setHoveredCard(null);
+                      }
+                    }}
+                  >
+                    {card ? (
+                      <div className="field-card-container">
+                        <img 
+                          src={getCardImageUrl(card.card_id)}
+                          alt={card.name}
+                          className={`field-card player-card ${fieldDragEnabled ? 'draggable' : ''}`}
+                          draggable={fieldDragEnabled}
+                          onDragStart={(e) => handleDragStart(e, card, { 
+                            type: 'field', 
+                            line: 'front', 
+                            position: index 
+                          })}
+                          onDragEnd={handleDragEnd}
+                        />
+                        {/* Activate効果ボタン */}
+                        {cardDetails[card.card_id]?.data?.能力?.includes('[Activate: Main]') && 
+                         !card.effectUsed && 
+                         gameState.currentTurn === 'player' && 
+                         gameState.gamePhase === 'main' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              activateMainEffect(card, 'front', index);
+                            }}
+                            className="activate-effect-btn"
+                            title="Activate効果を使用"
+                          >
+                            ⚡
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="empty-slot player-empty">
+                        {selectedCard && phaseManager.canPerformAction('playCard') ? <span>配置</span> : selectedCard ? <span>配置不可</span> : <span>空</span>}
+                        {isDragging && isSlotHighlighted('front', index) && (
+                          <div className="drag-guide-text">ドロップ可能</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* プレイヤーのエナジーライン */}
+          <div className="field-line player-energy-line">
+            <h4>あなたの エナジーライン</h4>
+            <div className="line-slots">
+              {gameState.playerEnergyLine.map((card, index) => {
+                const dragOverClass = getDragOverClass('energy', index);
+                const fieldDragEnabled = card && isDragEnabled(card, { 
+                  type: 'field', 
+                  line: 'energy', 
+                  position: index 
+                });
+                
+                // カードの発生エナジー情報を取得
+                const cardDetail = card ? cardDetails[card.card_id]?.data : null;
+                const generatedEnergy = cardDetail?.発生エナジー || '';
+                
+                return (
+                  <div 
+                    key={index} 
+                    className={`line-slot player-slot energy-slot ${
+                      selectedCard ? 'can-place' : ''
+                    } ${
+                      isSlotHighlighted('energy', index) ? 'highlighted' : ''
+                    } ${dragOverClass}`}
+                    onClick={() => handleLineSlotClick('energy', index)}
+                    onDragOver={(e) => handleDragOver(e, 'energy', index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 'energy', index)}
+                    onMouseEnter={() => {
+                      if (card) {
+                        setHoveredCard(card);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (card) {
+                        setHoveredCard(null);
+                      }
+                    }}
+                  >
                   {card ? (
-                    <img 
-                      src={getCardImageUrl(card.card_id)}
-                      alt={card.name}
-                      className="field-card player-card"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '6px'
-                      }}
-                    />
+                    <div className="field-card-container energy-card-container">
+                      <img 
+                        src={getCardImageUrl(card.card_id)}
+                        alt={card.name}
+                        className={`field-card player-card energy-card ${fieldDragEnabled ? 'draggable' : ''}`}
+                        draggable={fieldDragEnabled}
+                        onDragStart={(e) => handleDragStart(e, card, { 
+                          type: 'field', 
+                          line: 'energy', 
+                          position: index 
+                        })}
+                        onDragEnd={handleDragEnd}
+                      />
+                      
+                      {/* 発生エナジー表示オーバーレイ */}
+                      {generatedEnergy && (
+                        <div className="energy-overlay">
+                          <div className="energy-overlay-content">
+                            <span className="energy-label">発生:</span>
+                            <div className="energy-icons">
+                              {generatedEnergy.split('*').map((part, idx) => {
+                                if (idx % 2 === 1) {
+                                  // *で囲まれた部分（エナジーアイコン）
+                                  const imageName = part.replace(/[:*?"<>|]/g, '');
+                                  return (
+                                    <img
+                                      key={idx}
+                                      src={getEnergyImageUrl(imageName)}
+                                      alt={imageName}
+                                      className="energy-icon"
+                                      title={`${imageName}エナジー`}
+                                    />
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Activate効果ボタン */}
+                      {cardDetails[card.card_id]?.data?.能力?.includes('[Activate: Main]') && 
+                       !card.effectUsed && 
+                       gameState.currentTurn === 'player' && 
+                       gameState.gamePhase === 'main' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            activateMainEffect(card, 'energy', index);
+                          }}
+                          className="activate-effect-btn"
+                          title="Activate効果を使用"
+                        >
+                          ⚡
+                        </button>
+                      )}
+                    </div>
                   ) : (
-                    <div className="empty-slot player-empty" style={{
-                      color: 'white',
-                      fontSize: '12px',
-                      textAlign: 'center'
-                    }}>
+                    <div className="empty-slot player-empty">
                       {selectedCard && phaseManager.canPerformAction('playCard') ? <span>配置</span> : selectedCard ? <span>配置不可</span> : <span>空</span>}
+                      {isDragging && isSlotHighlighted('energy', index) && (
+                        <div className="drag-guide-text">ドロップ可能</div>
+                      )}
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
+
         </div>
       </div>
 
       {/* 手札エリア */}
-      <div className="hand-section" style={{
-        backgroundColor: '#2c3e50',
-        borderRadius: '15px',
-        padding: '20px'
-      }}>
+      <div className="hand-section">
         <div className="player-hand">
-          <h3 style={{ margin: '0 0 15px 0', color: 'white' }}>手札 ({gameState.playerHand.length}枚)</h3>
-          <div className="hand-cards" style={{
-            display: 'flex',
-            gap: '15px',
-            justifyContent: 'center',
-            flexWrap: 'wrap'
-          }}>
+          <h3>手札 ({gameState.playerHand.length}枚)</h3>
+          <div className="hand-cards">
             {gameState.playerHand.map((card, index) => {
               const isSelected = selectedCard?.uniqueId === card.uniqueId;
+              const dragEnabled = isDragEnabled(card, { type: 'hand' });
               
               return (
                 <div 
                   key={card.uniqueId} 
-                  className={`hand-card ${isSelected ? 'selected' : ''}`}
+                  className={`hand-card ${isSelected ? 'selected' : ''} ${dragEnabled ? 'draggable' : ''}`}
+                  draggable={dragEnabled}
+                  onDragStart={(e) => handleDragStart(e, card, { type: 'hand' })}
+                  onDragEnd={handleDragEnd}
                   onClick={() => handleCardClick(card)}
                   onMouseEnter={() => setHoveredCard(card)}
                   onMouseLeave={() => setHoveredCard(null)}
-                  style={{
-                    width: '100px',
-                    height: '140px',
-                    border: isSelected ? '3px solid #f39c12' : '2px solid transparent',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    transform: isSelected ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)',
-                    boxShadow: isSelected ? '0 10px 20px rgba(243,156,18,0.5)' : '0 5px 15px rgba(0,0,0,0.3)'
-                  }}
                 >
                   <img 
                     src={getCardImageUrl(card.card_id)}
                     alt={card.name}
                     className="hand-card-image"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '6px'
-                    }}
                   />
+                  {dragEnabled && (
+                    <div className="drag-guide-text">ドラッグ可能</div>
+                  )}
                 </div>
               );
             })}
@@ -1454,57 +1894,259 @@ const BattleField = ({ selectedDeck, duelMode, onBackToMenu }) => {
         </div>
       </div>
 
-      {/* カード詳細表示 */}
-      {hoveredCard && (
-        <div className="card-detail-popup">
-          <div className="card-detail-content">
-            {/* 名前 */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontWeight: 'bold', fontSize: '15px', color: '#4299e1' }}>{hoveredCard.name}</span>
+      {/* 改善されたカードプレビューシステム */}
+      {(hoveredCard || showCardPreview) && (
+        <div className="enhanced-card-preview">
+          <div className="preview-container">
+            <div className="preview-header">
+              <h3 className="card-title">{(hoveredCard || previewCard)?.name}</h3>
+              {showCardPreview && (
+                <button 
+                  className="close-preview-btn"
+                  onClick={() => {
+                    setShowCardPreview(false);
+                    setPreviewCard(null);
+                  }}
+                >
+                  ×
+                </button>
+              )}
             </div>
-            {/* 画像 */}
-            <img 
-              src={getCardImageUrl(hoveredCard.card_id)}
-              alt={hoveredCard.name}
-              className="detail-card-image"
-            />
-            {/* 必要エナジー */}
-            {(() => {
-              const cardDetail = cardDetails[hoveredCard.card_id]?.data;
-              return cardDetail?.必要エナジー ? (
-                <div style={{ textAlign: 'center', fontSize: '13px', color: '#f6e05e', margin: '4px 0 8px 0' }}>
-                  必要エナジー: {cardDetail.必要エナジー}
-                </div>
-              ) : null;
-            })()}
-            {/* カード詳細情報 */}
-            <div className="card-detail-info" style={{ width: '100%', marginTop: '4px', maxHeight: '140px', overflowY: 'auto' }}>
-              {(() => {
-                const cardDetail = cardDetails[hoveredCard.card_id]?.data;
-                if (cardDetail) {
+            
+            <div className="preview-content">
+              <div className="card-image-section">
+                <img 
+                  src={getCardImageUrl((hoveredCard || previewCard)?.card_id)}
+                  alt={(hoveredCard || previewCard)?.name}
+                  className="preview-card-image"
+                />
+              </div>
+              
+              <div className="card-stats-section">
+                {(() => {
+                  const cardDetail = cardDetails[(hoveredCard || previewCard)?.card_id]?.data;
+                  if (!cardDetail) return null;
+                  
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {/* カード種類 */}
+                    <div className="stats-grid">
                       {cardDetail.カード種類 && (
-                        <p><strong>カード種類:</strong> {cardDetail.カード種類}</p>
+                        <div className="stat-item type">
+                          <span className="stat-label">種類</span>
+                          <span className="stat-value">{cardDetail.カード種類}</span>
+                        </div>
                       )}
-                      {/* BP */}
                       {cardDetail.BP && (
-                        <p><strong>BP:</strong> {cardDetail.BP}</p>
+                        <div className="stat-item bp">
+                          <span className="stat-label">BP</span>
+                          <span className="stat-value bp-value">{cardDetail.BP}</span>
+                        </div>
                       )}
-                      {/* 発生エナジー */}
+                      {cardDetail.必要エナジー && (
+                        <div className="stat-item energy-cost">
+                          <span className="stat-label">コスト</span>
+                          <span className="stat-value energy-value">{cardDetail.必要エナジー}</span>
+                        </div>
+                      )}
                       {cardDetail.発生エナジー && (
-                        <p><strong>発生エナジー:</strong> {cardDetail.発生エナジー}</p>
-                      )}
-                      {/* 効果 */}
-                      {cardDetail.効果 && (
-                        <p style={{ whiteSpace: 'pre-line' }}><strong>効果:</strong> {cardDetail.効果}</p>
+                        <div className="stat-item energy-gen">
+                          <span className="stat-label">エナジー</span>
+                          <span className="stat-value energy-value">{cardDetail.発生エナジー}</span>
+                        </div>
                       )}
                     </div>
                   );
-                }
-                return null;
-              })()}
+                })()}
+                
+                {(() => {
+                  const cardDetail = cardDetails[(hoveredCard || previewCard)?.card_id]?.data;
+                  return cardDetail?.効果 ? (
+                    <div className="ability-section">
+                      <h4 className="ability-title">効果</h4>
+                      <div className="ability-text">{cardDetail.効果}</div>
+                    </div>
+                  ) : null;
+                })()}
+                
+                {(() => {
+                  const cardDetail = cardDetails[(hoveredCard || previewCard)?.card_id]?.data;
+                  return cardDetail?.能力 ? (
+                    <div className="ability-section">
+                      <h4 className="ability-title">能力</h4>
+                      <div className="ability-text">{cardDetail.能力}</div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 墓地表示モーダル */}
+      {(showPlayerGraveyard || showOpponentGraveyard) && (
+        <div className="graveyard-modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div className="graveyard-modal" style={{
+            backgroundColor: '#1a1a2e',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '80%',
+            maxWidth: '800px',
+            maxHeight: '80%',
+            border: `2px solid ${showPlayerGraveyard ? '#27ae60' : '#e74c3c'}`,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div className="graveyard-header" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              paddingBottom: '12px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <h3 style={{
+                color: showPlayerGraveyard ? '#27ae60' : '#e74c3c',
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: 'bold'
+              }}>
+                {showPlayerGraveyard ? 'あなたの墓地' : '相手の墓地'} 
+                ({(showPlayerGraveyard ? gameState.playerGraveyard : gameState.opponentGraveyard).length}枚)
+              </h3>
+              <button 
+                onClick={() => {
+                  setShowPlayerGraveyard(false);
+                  setShowOpponentGraveyard(false);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#e2e8f0',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.color = '#fc8181';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#e2e8f0';
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="graveyard-cards" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+              gap: '12px',
+              overflowY: 'auto',
+              flex: 1,
+              padding: '8px'
+            }}>
+              {(showPlayerGraveyard ? gameState.playerGraveyard : gameState.opponentGraveyard)
+                .slice().reverse().map((card, index) => (
+                <div 
+                  key={`graveyard-${card.uniqueId}-${index}`} 
+                  className="graveyard-card"
+                  onMouseEnter={() => setHoveredCard(card)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    width: '100px',
+                    height: '140px',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    transform: 'scale(1)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                  }}
+                  onMouseEnterCapture={(e) => {
+                    e.target.style.transform = 'scale(1.05)';
+                    e.target.style.border = '2px solid rgba(66, 153, 225, 0.8)';
+                  }}
+                  onMouseLeaveCapture={(e) => {
+                    e.target.style.transform = 'scale(1)';
+                    e.target.style.border = '2px solid rgba(255, 255, 255, 0.2)';
+                  }}
+                >
+                  <img 
+                    src={getCardImageUrl(card.card_id)}
+                    alt={card.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                </div>
+              ))}
+              
+              {(showPlayerGraveyard ? gameState.playerGraveyard : gameState.opponentGraveyard).length === 0 && (
+                <div style={{
+                  gridColumn: '1 / -1',
+                  textAlign: 'center',
+                  color: '#a0aec0',
+                  fontSize: '16px',
+                  padding: '40px',
+                  fontStyle: 'italic'
+                }}>
+                  墓地にカードはありません
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* インタラクティブチュートリアル */}
+      {showTutorial && (
+        <div className="tutorial-overlay">
+          <div className="tutorial-backdrop" onClick={skipTutorial}></div>
+          <div className="tutorial-content">
+            <div className="tutorial-header">
+              <h3 className="tutorial-title">{tutorialSteps[tutorialStep].title}</h3>
+              <button className="tutorial-close" onClick={skipTutorial}>×</button>
+            </div>
+            <div className="tutorial-body">
+              <p className="tutorial-text">{tutorialSteps[tutorialStep].content}</p>
+              <div className="tutorial-progress">
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
+                    style={{ width: `${((tutorialStep + 1) / tutorialSteps.length) * 100}%` }}
+                  ></div>
+                </div>
+                <span className="progress-text">
+                  {tutorialStep + 1} / {tutorialSteps.length}
+                </span>
+              </div>
+            </div>
+            <div className="tutorial-footer">
+              <button className="tutorial-btn skip-btn" onClick={skipTutorial}>
+                スキップ
+              </button>
+              <button className="tutorial-btn next-btn" onClick={nextTutorialStep}>
+                {tutorialStep === tutorialSteps.length - 1 ? '完了' : '次へ'}
+              </button>
             </div>
           </div>
         </div>

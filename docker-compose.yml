@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # バックエンド API サービス
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: union-arena-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///./app.db
+    volumes:
+      - ./backend:/app
+      - ./backend/cardscrap:/app/cardscrap
+    working_dir: /app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - union-arena-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # フロントエンド React アプリ
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: union-arena-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:8000
+      - REACT_APP_LLM_API_URL=http://host.docker.internal:11434
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm start
+    depends_on:
+      - backend
+    networks:
+      - union-arena-network
+    stdin_open: true
+    tty: true
+
+  # テストサービス
+  tests:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    container_name: union-arena-tests
+    environment:
+      - APP_URL=http://frontend:3000
+      - API_URL=http://backend:8000
+      - NODE_ENV=test
+      - HEADLESS=true
+    volumes:
+      - ./tests:/app
+      - ./tests/screenshots:/app/screenshots
+      - ./tests/reports:/app/reports
+      - /app/node_modules
+    working_dir: /app
+    command: npm run test:watch
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - union-arena-network
+
+  # 単体テストランナー（フロントエンド用）
+  frontend-tests:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.test
+    container_name: union-arena-frontend-tests
+    environment:
+      - NODE_ENV=test
+      - CI=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm run test -- --coverage --watchAll=false
+    networks:
+      - union-arena-network
+
+  # LLM API プロキシ（Ollama連携用）
+  llm-proxy:
+    image: nginx:alpine
+    container_name: union-arena-llm-proxy
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - union-arena-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  union-arena-network:
+    driver: bridge
+
+volumes:
+  backend-data:
+  frontend-node-modules:
+  tests-node-modules:

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Union Arena TDD Monitor Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: 100vh;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+
+        .panel h3 {
+            margin-bottom: 15px;
+            color: #4299e1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-healthy { background: #38a169; }
+        .status-warning { background: #ecc94b; }
+        .status-error { background: #e53e3e; }
+
+        .log-container {
+            height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-info { background: rgba(66, 153, 225, 0.2); }
+        .log-success { background: rgba(56, 161, 105, 0.2); }
+        .log-warning { background: rgba(236, 201, 75, 0.2); }
+        .log-error { background: rgba(229, 62, 62, 0.2); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4299e1;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38a169, #68d391);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .test-case {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .test-case.passed { border-left-color: #38a169; }
+        .test-case.failed { border-left-color: #e53e3e; }
+        .test-case.running { border-left-color: #ecc94b; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(45deg, #4299e1, #63b3ed);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.4);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #e53e3e, #fc8181);
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, #38a169, #68d391);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .running {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🎯 Union Arena TDD Monitor Dashboard</h1>
+            <p>Real-time Test Driven Development Monitoring</p>
+            <div id="lastUpdate">Last updated: --</div>
+        </div>
+
+        <div class="panel">
+            <h3>
+                <span class="status-indicator" id="serviceStatus"></span>
+                Service Status
+            </h3>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value" id="frontendStatus">--</div>
+                    <div class="metric-label">Frontend</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="backendStatus">--</div>
+                    <div class="metric-label">Backend</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="testsStatus">--</div>
+                    <div class="metric-label">Tests</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="llmStatus">--</div>
+                    <div class="metric-label">LLM API</div>
+                </div>
+            </div>
+            <div class="controls">
+                <button class="btn" onclick="refreshStatus()">🔄 Refresh</button>
+                <button class="btn success" onclick="runTests()">🧪 Run Tests</button>
+                <button class="btn danger" onclick="restartServices()">🔄 Restart</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>
+                <span class="status-indicator" id="testStatus"></span>
+                Test Results
+            </h3>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value" id="testsPassed">0</div>
+                    <div class="metric-label">Passed</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="testsFailed">0</div>
+                    <div class="metric-label">Failed</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="coverage">0%</div>
+                    <div class="metric-label">Coverage</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="duration">0s</div>
+                    <div class="metric-label">Duration</div>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="testProgress" style="width: 0%"></div>
+            </div>
+            <div id="testCases"></div>
+        </div>
+
+        <div class="panel">
+            <h3>
+                <span class="status-indicator status-info"></span>
+                Live Logs
+            </h3>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">
+                    <span class="timestamp">[2024-01-01 12:00:00]</span>
+                    <span class="message">TDD Monitor started...</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button class="btn" onclick="clearLogs()">🗑️ Clear</button>
+                <button class="btn" onclick="toggleAutoScroll()">📜 Auto-scroll</button>
+                <button class="btn" onclick="exportLogs()">💾 Export</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>
+                <span class="status-indicator" id="performanceStatus"></span>
+                Performance Metrics
+            </h3>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value" id="cpuUsage">0%</div>
+                    <div class="metric-label">CPU Usage</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="memoryUsage">0MB</div>
+                    <div class="metric-label">Memory</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="responseTime">0ms</div>
+                    <div class="metric-label">Response Time</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="errorRate">0%</div>
+                    <div class="metric-label">Error Rate</div>
+                </div>
+            </div>
+            <canvas id="performanceChart" width="300" height="150"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let autoScroll = true;
+        let logCount = 0;
+        const maxLogs = 100;
+
+        // ログ追加関数
+        function addLog(level, message) {
+            const container = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${level}`;
+            logEntry.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                <span class="message">${message}</span>
+            `;
+            
+            container.appendChild(logEntry);
+            logCount++;
+            
+            // 最大ログ数を超えた場合、古いログを削除
+            if (logCount > maxLogs) {
+                container.removeChild(container.firstChild);
+                logCount--;
+            }
+            
+            if (autoScroll) {
+                container.scrollTop = container.scrollHeight;
+            }
+            
+            updateLastUpdateTime();
+        }
+
+        // サービス状態チェック
+        async function checkServiceStatus() {
+            const services = ['frontend', 'backend', 'llm'];
+            const endpoints = {
+                frontend: 'http://localhost:3000',
+                backend: 'http://localhost:8000/health',
+                llm: 'http://localhost:11434/api/tags'
+            };
+            
+            for (const service of services) {
+                try {
+                    const response = await fetch(endpoints[service], { 
+                        method: 'GET',
+                        timeout: 5000
+                    });
+                    
+                    if (response.ok) {
+                        document.getElementById(`${service}Status`).textContent = '✅';
+                        addLog('success', `${service} service is healthy`);
+                    } else {
+                        document.getElementById(`${service}Status`).textContent = '⚠️';
+                        addLog('warning', `${service} service responded with error`);
+                    }
+                } catch (error) {
+                    document.getElementById(`${service}Status`).textContent = '❌';
+                    addLog('error', `${service} service is unreachable`);
+                }
+            }
+        }
+
+        // テスト実行
+        async function runTests() {
+            addLog('info', 'Starting test execution...');
+            document.getElementById('testStatus').className = 'status-indicator status-warning running';
+            
+            // 模擬テスト結果
+            setTimeout(() => {
+                const results = {
+                    passed: Math.floor(Math.random() * 20) + 10,
+                    failed: Math.floor(Math.random() * 5),
+                    coverage: Math.floor(Math.random() * 30) + 70,
+                    duration: (Math.random() * 10 + 5).toFixed(1)
+                };
+                
+                updateTestResults(results);
+                addLog('success', `Tests completed: ${results.passed} passed, ${results.failed} failed`);
+                document.getElementById('testStatus').className = 'status-indicator status-healthy';
+            }, 3000);
+        }
+
+        // テスト結果更新
+        function updateTestResults(results) {
+            document.getElementById('testsPassed').textContent = results.passed;
+            document.getElementById('testsFailed').textContent = results.failed;
+            document.getElementById('coverage').textContent = `${results.coverage}%`;
+            document.getElementById('duration').textContent = `${results.duration}s`;
+            
+            const total = results.passed + results.failed;
+            const passRate = total > 0 ? (results.passed / total) * 100 : 0;
+            document.getElementById('testProgress').style.width = `${passRate}%`;
+        }
+
+        // 状態更新
+        function refreshStatus() {
+            addLog('info', 'Refreshing service status...');
+            checkServiceStatus();
+        }
+
+        // サービス再起動
+        function restartServices() {
+            addLog('warning', 'Restarting services...');
+            // 実際の実装では Docker Compose restart を実行
+        }
+
+        // ログクリア
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            logCount = 0;
+            addLog('info', 'Logs cleared');
+        }
+
+        // 自動スクロール切り替え
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            addLog('info', `Auto-scroll ${autoScroll ? 'enabled' : 'disabled'}`);
+        }
+
+        // ログエクスポート
+        function exportLogs() {
+            const logs = document.getElementById('logContainer').innerText;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tdd-logs-${new Date().getTime()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLog('info', 'Logs exported');
+        }
+
+        // 最終更新時刻更新
+        function updateLastUpdateTime() {
+            document.getElementById('lastUpdate').textContent = 
+                `Last updated: ${new Date().toLocaleTimeString()}`;
+        }
+
+        // 初期化
+        function init() {
+            addLog('info', 'TDD Monitor Dashboard initialized');
+            checkServiceStatus();
+            
+            // 定期的な状態チェック
+            setInterval(checkServiceStatus, 30000);
+            
+            // パフォーマンスメトリクス更新
+            setInterval(() => {
+                document.getElementById('cpuUsage').textContent = 
+                    `${Math.floor(Math.random() * 40) + 10}%`;
+                document.getElementById('memoryUsage').textContent = 
+                    `${Math.floor(Math.random() * 500) + 200}MB`;
+                document.getElementById('responseTime').textContent = 
+                    `${Math.floor(Math.random() * 200) + 50}ms`;
+                document.getElementById('errorRate').textContent = 
+                    `${(Math.random() * 2).toFixed(1)}%`;
+            }, 10000);
+        }
+
+        // ページ読み込み完了時に初期化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

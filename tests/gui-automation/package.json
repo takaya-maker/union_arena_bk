@@ -1,0 +1,35 @@
+{
+  "name": "union-arena-duel-gui-tests",
+  "version": "1.0.0",
+  "description": "Automated GUI testing for Union Arena BattleField Duel system",
+  "main": "index.js",
+  "scripts": {
+    "test": "node run-tests.js",
+    "test:gui": "node src/duelTestRunner.js",
+    "test:battlefield": "node src/battlefieldTests.js",
+    "test:combat": "node src/combatTests.js",
+    "test:all": "node run-tests.js",
+    "test:watch": "nodemon src/duelTestRunner.js",
+    "test:headless": "HEADLESS=true node src/duelTestRunner.js",
+    "test:docker": "HEADLESS=true APP_URL=http://frontend:3000 API_URL=http://backend:8000 node src/duelTestRunner.js",
+    "start": "node run-tests.js",
+    "dev": "nodemon src/duelTestRunner.js"
+  },
+  "keywords": ["testing", "gui", "automation", "union-arena", "duel", "tcg"],
+  "author": "Union Arena Dev Team",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "jest": "^29.7.0",
+    "puppeteer": "^21.5.0",
+    "selenium-webdriver": "^4.15.0",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.6",
+    "fs-extra": "^11.1.1",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "@types/jest": "^29.5.8"
+  }
+}

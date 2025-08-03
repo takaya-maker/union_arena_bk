@@ -483,17 +483,10 @@ import {
       return 25 * this.decisionWeights.cardAdvantage;
     }
   
-    // AIの仮想手札生成（テスト用）
+    // AIの手札取得（実際の手札を使用）
     generateAIHand(gameState, cardDetails) {
-      // 実際の実装では、AIの手札を適切に管理する
-      // ここではテスト用の簡単な実装
-      const sampleCards = [
-        { card_id: 'sample_1', name: 'AIキャラクター1', bp: 3000 },
-        { card_id: 'sample_2', name: 'AIキャラクター2', bp: 4000 },
-        { card_id: 'sample_3', name: 'AIイベント', type: 'event' }
-      ];
-      
-      return sampleCards.slice(0, Math.min(3, gameState.opponentHand.length));
+      // 実際のAI手札を返す
+      return gameState.opponentHand.filter(card => card !== null);
     }
   
     // エンドフェーズの決定

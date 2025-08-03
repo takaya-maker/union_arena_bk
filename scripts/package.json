@@ -1,0 +1,22 @@
+{
+  "name": "union-arena-tdd-monitor",
+  "version": "1.0.0",
+  "description": "Test-Driven Development monitoring tools for Union Arena",
+  "main": "test-monitor.js",
+  "scripts": {
+    "monitor": "node test-monitor.js start",
+    "monitor:tdd": "node test-monitor.js tdd",
+    "monitor:health": "node test-monitor.js health",
+    "monitor:export": "node test-monitor.js export"
+  },
+  "dependencies": {
+    "ws": "^8.14.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "bin": {
+    "tdd-monitor": "./test-monitor.js"
+  }
+}
