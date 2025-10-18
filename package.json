@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.2.1"
   },
   "name": "union-arena-webapp",
   "version": "1.0.0",
